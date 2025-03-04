@@ -1,0 +1,65 @@
+.history-container {
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+  }
+  
+  .history-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .filter-section {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .filter-section input,
+  .filter-section select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .history-card {
+    display: flex;
+    justify-content: space-between;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    align-items: center;
+  }
+  
+  .card-content {
+    flex: 1;
+  }
+  
+  .card-content div {
+    margin-bottom: 8px;
+  }
+  
+  .card-actions button {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  
+  .card-actions button:hover {
+    transform: scale(1.1);
+  }
+  
