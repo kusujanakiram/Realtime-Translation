@@ -1,199 +1,262 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './TranslationPage.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { FaArrowLeft, FaMicrophone } from "react-icons/fa";
+import axios from "axios";
+import "./TranslationPage.css";
+
+const API_URL = "https://ai-translate.p.rapidapi.com/translate";
+const SPEECH_TO_TEXT_API = "https://openai-whisper-speech-to-text-api.p.rapidapi.com/transcribe";
 
 const TranslationPage = () => {
   const navigate = useNavigate();
-  const [purpose, setPurpose] = useState('');
-  const [conversationName, setConversationName] = useState('');
-  const [language1, setLanguage1] = useState('');
-  const [language2, setLanguage2] = useState('');
-  const [inputMethod1, setInputMethod1] = useState('text');
-  const [inputMethod2, setInputMethod2] = useState('text');
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [liveCaptions, setLiveCaptions] = useState('');
+  const [liveCaptions, setLiveCaptions] = useState("Live captions here...");
+  const [showExit, setShowExit] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [textInput, setTextInput] = useState("");
+  const [settings, setSettings] = useState(null);
+  const [isListening, setIsListening] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [translatedAudio, setTranslatedAudio] = useState(null); // Store translated audio
+  const [translatedText, setTranslatedText] = useState(""); // Store translated text
 
-  const startTranslation = () => {
-    // Validate required fields
-    if (!purpose || !conversationName || !language1 || !language2) {
-      alert('Please fill all required fields.');
-      return;
+  useEffect(() => {
+    const storedSettings = localStorage.getItem("translationSettings");
+    if (storedSettings) {
+      try {
+        const parsedSettings = JSON.parse(storedSettings);
+        console.log("🔹 Loaded Settings from localStorage:", parsedSettings);
+        setSettings(parsedSettings);
+      } catch (error) {
+        console.error("❌ Error parsing localStorage data:", error);
+      }
+    } else {
+      console.warn("⚠️ No translation settings found in localStorage.");
     }
-    setIsTranslating(true);
-    // Clear previous captions
-    setLiveCaptions('');
-    // Start live caption simulation or integration with speech-to-text API
-  };
+  }, []);
 
-  const stopTranslation = () => {
-    setIsTranslating(false);
-    // Process translation output, here simulated with dummy text
-    setLiveCaptions('Translated text will appear here...');
-  };
+const handleSendText = async () => {
+    console.log("⚡ Current Settings:", settings);
 
-  const handleExit = () => {
-    // Show the confirmation modal when exit is clicked
-    setShowModal(true);
-  };
+    if (!textInput.trim()) {
+        alert("Please enter text to translate.");
+        return;
+    }
 
-  const confirmExit = () => {
-    // Simulate downloading audio and then navigate back to home
-    alert('Downloading audio...');
-    navigate('/');
-  };
+    setLoading(true);
 
-  const cancelExit = () => {
-    setShowModal(false);
+    try {
+        // 🌍 Step 1: Detect Language
+        const detectOptions = {
+            method: "POST",
+            url: "https://google-translator9.p.rapidapi.com/v2/detect",
+            headers: {
+                "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
+                "x-rapidapi-host": "google-translator9.p.rapidapi.com",
+                "Content-Type": "application/json",
+            },
+            data: { q: textInput },
+        };
+
+        console.log("🔍 Detecting Language...");
+        const detectResponse = await axios.request(detectOptions);
+        const detectedLang = detectResponse.data?.data?.detections?.[0]?.[0]?.language;
+
+        if (!detectedLang) {
+            alert("❌ Unable to detect language.");
+            setLoading(false);
+            return;
+        }
+
+        console.log("✅ Detected Language:", detectedLang);
+
+        // 🛠 Step 2: Determine Translation Target
+        let sourceLang = detectedLang;
+        let targetLang = detectedLang === settings.language1 ? settings.language2 : settings.language1;
+
+        console.log(`🌐 Translating from ${sourceLang} to ${targetLang}`);
+
+        // 🚀 Step 3: Translate Text
+        const translateText = async (text, sourceLang, targetLang) => {
+          try {
+              const translateOptions = {
+                  method: "POST",
+                  url: "https://google-translator9.p.rapidapi.com/v2",
+                  headers: {
+                      "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
+                      "x-rapidapi-host": "google-translator9.p.rapidapi.com",
+                      "Content-Type": "application/json",
+                  },
+                  data: {
+                      q: text,
+                      source: sourceLang,
+                      target: targetLang,
+                      format: "text",
+                  },
+              };
+      
+              console.log("🔄 Sending request to translation API...");
+              const response = await axios.request(translateOptions);
+              console.log("✅ Translation response:", response.data);
+      
+              return response.data?.data?.translations?.[0]?.translatedText || "";
+          } catch (error) {
+              console.error("❌ Translation API Error:", error);
+              return "";
+          }
+      };
+      
+        const translatedText = await translateText(textInput, sourceLang, targetLang);
+
+        if (!translatedText) {
+            alert("❌ Translation failed.");
+            setLoading(false);
+            return;
+        }
+
+        console.log("🔤 Translated Text:", translatedText);
+        setTranslatedText(translatedText); // 🔹 Save translated text
+        setLiveCaptions(translatedText); // 🔹 Update live captions
+
+        // 🎙 Step 4: Convert Translated Text to Speech (Using OpenAI TTS)
+        const ttsOptions = {
+            method: "POST",
+            url: "https://open-ai-text-to-speech1.p.rapidapi.com/",
+            headers: {
+                "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
+                "x-rapidapi-host": "open-ai-text-to-speech1.p.rapidapi.com",
+                "Content-Type": "application/json",
+            },
+            responseType: "arraybuffer",
+            data: {
+                model: "tts-1",
+                input: translatedText,
+                voice: "alloy",
+            },
+        };
+
+        console.log("🎧 Converting to Speech...");
+        const ttsResponse = await axios.request(ttsOptions);
+
+        // 🎵 Step 5: Play & Store Audio
+        const audioBlob = new Blob([ttsResponse.data], { type: "audio/mp3" });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setTranslatedAudio(audioUrl); // 🔹 Save audio URL
+
+        const audio = new Audio(audioUrl);
+        audio.play();
+
+        setLoading(false);
+    } catch (error) {
+        setLoading(false);
+        console.error("❌ API Error:", error);
+        alert("Error processing translation & speech.");
+    }
+};
+
+
+  const handleSpeechInput = async () => {
+    setIsListening(true);
+    const options = {
+      method: "POST",
+      url: SPEECH_TO_TEXT_API,
+      headers: {
+        "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
+        "x-rapidapi-host": "openai-whisper-speech-to-text-api.p.rapidapi.com",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      data: new URLSearchParams({ type: "RAPID", response_format: "JSON" }),
+    };
+
+    try {
+      const response = await axios.request(options);
+      setIsListening(false);
+      if (response.data?.text) {
+        setTextInput(response.data.text);
+      }
+    } catch (error) {
+      setIsListening(false);
+      console.error("❌ Speech-to-Text API Error:", error);
+    }
   };
 
   return (
     <div className="translation-page">
-      {/* Header with exit button */}
       <header className="translation-header">
-        <button className="exit-btn" onClick={handleExit}>X</button>
-        <h1>Real-Time Translation</h1>
+        <div className="header-left">
+          <span className="logo">🔵</span>
+          <h2>Anuvadham</h2>
+        </div>
+        <button className="exit-btn" onClick={() => setShowExit(!showExit)}>
+          <FaArrowLeft />
+        </button>
+        {showExit && (
+          <motion.button
+            className="terminate-btn"
+            onClick={() => setShowModal(true)}
+            initial={{ x: 100 }}
+            animate={{ x: 0 }}
+            transition={{ type: "spring", stiffness: 100 }}
+          >
+            Terminate
+          </motion.button>
+        )}
       </header>
 
-      {/* Pre-Conversation Setup */}
-      <div className="setup-section">
-        <div className="setup-field">
-          <label htmlFor="purpose">Purpose:</label>
-          <input 
-            type="text" 
-            id="purpose" 
-            value={purpose} 
-            onChange={(e) => setPurpose(e.target.value)} 
-            placeholder="e.g., Business, Travel" 
-          />
-        </div>
-        <div className="setup-field">
-          <label htmlFor="conversationName">Conversation Name:</label>
-          <input 
-            type="text" 
-            id="conversationName" 
-            value={conversationName} 
-            onChange={(e) => setConversationName(e.target.value)} 
-            placeholder="Enter conversation name" 
-          />
-        </div>
-      </div>
-
-      {/* Language & Input Selection */}
-      <div className="language-selection">
-        {/* Person 1 */}
-        <div className="participant">
-          <h2>Person 1</h2>
-          <div className="setup-field">
-            <label htmlFor="language1">Language:</label>
-            <select 
-              id="language1" 
-              value={language1} 
-              onChange={(e) => setLanguage1(e.target.value)}
-            >
-              <option value="">Select Language</option>
-              <option value="en">English</option>
-              <option value="es">Spanish</option>
-              <option value="fr">French</option>
-              {/* More options can be added */}
-            </select>
-          </div>
-          <div className="setup-field">
-            <label>Input Method:</label>
-            <div className="input-method">
-              <label>
-                <input 
-                  type="radio" 
-                  name="inputMethod1" 
-                  value="voice" 
-                  checked={inputMethod1 === 'voice'} 
-                  onChange={(e) => setInputMethod1(e.target.value)} 
-                /> Voice
-              </label>
-              <label>
-                <input 
-                  type="radio" 
-                  name="inputMethod1" 
-                  value="text" 
-                  checked={inputMethod1 === 'text'} 
-                  onChange={(e) => setInputMethod1(e.target.value)} 
-                /> Text
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Person 2 */}
-        <div className="participant">
-          <h2>Person 2</h2>
-          <div className="setup-field">
-            <label htmlFor="language2">Language:</label>
-            <select 
-              id="language2" 
-              value={language2} 
-              onChange={(e) => setLanguage2(e.target.value)}
-            >
-              <option value="">Select Language</option>
-              <option value="en">English</option>
-              <option value="es">Spanish</option>
-              <option value="fr">French</option>
-              {/* More options can be added */}
-            </select>
-          </div>
-          <div className="setup-field">
-            <label>Input Method:</label>
-            <div className="input-method">
-              <label>
-                <input 
-                  type="radio" 
-                  name="inputMethod2" 
-                  value="voice" 
-                  checked={inputMethod2 === 'voice'} 
-                  onChange={(e) => setInputMethod2(e.target.value)} 
-                /> Voice
-              </label>
-              <label>
-                <input 
-                  type="radio" 
-                  name="inputMethod2" 
-                  value="text" 
-                  checked={inputMethod2 === 'text'} 
-                  onChange={(e) => setInputMethod2(e.target.value)} 
-                /> Text
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Real-Time Translation Interface */}
       <div className="translation-interface">
-        {!isTranslating ? (
-          <button className="start-btn" onClick={startTranslation}>Start</button>
+        {settings?.inputMethod1 === "text" || settings?.inputMethod2 === "text" ? (
+          <div className="text-editor-container">
+            <h2>Text Input</h2>
+            <textarea
+              className="text-input"
+              placeholder="Type text here..."
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+            ></textarea>
+            <button 
+            onClick={() => translatedAudio && new Audio(translatedAudio).play()} 
+            disabled={!translatedAudio}
+             className="repeat-btn">
+            🔄 Repeat
+            </button>
+            <button onClick={handleSendText} disabled={loading}>
+              {loading ? "Translating..." : "Send Text"}
+            </button>
+            <button className="mic-btn" onClick={handleSpeechInput} disabled={isListening}>
+              {isListening ? "Listening..." : <FaMicrophone />}
+            </button>
+          </div>
         ) : (
-          <button className="stop-btn" onClick={stopTranslation}>Stop</button>
+          <p>No text input method selected.</p>
         )}
-        <div className="live-captions">
-          {isTranslating ? (
-            <p>Listening... (live captions will appear here)</p>
-          ) : (
-            <p>{liveCaptions}</p>
-          )}
-        </div>
       </div>
 
-      {/* Confirmation Modal */}
+      <motion.div
+        className="live-captions"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {liveCaptions}
+      </motion.div>
+
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
             <h3>Do you want to save this conversation?</h3>
             <div className="modal-buttons">
-              <button onClick={confirmExit} className="modal-btn download">Download Audio</button>
-              <button onClick={cancelExit} className="modal-btn cancel">Cancel</button>
+              <button onClick={() => {}} className="modal-btn download">
+                Download
+              </button>
+              <button onClick={() => navigate("/")} className="modal-btn cancel">
+                Cancel
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      <footer className="footer">Footer</footer>
     </div>
   );
 };
