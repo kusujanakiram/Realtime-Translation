@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaArrowLeft, FaMicrophone } from "react-icons/fa";
 import axios from "axios";
 import "./TranslationPage.css";
+import languageMap from "../languageMap";
 
-const API_URL = "https://ai-translate.p.rapidapi.com/translate";
-const SPEECH_TO_TEXT_API = "https://openai-whisper-speech-to-text-api.p.rapidapi.com/transcribe";
+
 
 const TranslationPage = () => {
   const navigate = useNavigate();
@@ -19,7 +19,29 @@ const TranslationPage = () => {
   const [loading, setLoading] = useState(false);
   const [translatedAudio, setTranslatedAudio] = useState(null); // Store translated audio
   const [translatedText, setTranslatedText] = useState(""); // Store translated text
+  const liveCaptionsRef = useRef(null);
+  const [micLevel, setMicLevel] = useState(0);
+  
+  
 
+  const scrollToCaptions = () => {
+    if (liveCaptionsRef.current) {
+      liveCaptionsRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+  useEffect(() => {
+    let animation;
+    if (isListening) {
+      animation = setInterval(() => {
+        setMicLevel((level) => (level > 10 ? 0 : level + 1));
+      }, 200);
+    } else {
+      setMicLevel(0);
+    }
+    return () => clearInterval(animation);
+  }, [isListening]);
+  
+  
   useEffect(() => {
     const storedSettings = localStorage.getItem("translationSettings");
     if (storedSettings) {
@@ -107,7 +129,7 @@ const handleSendText = async () => {
       };
       
         const translatedText = await translateText(textInput, sourceLang, targetLang);
-
+        scrollToCaptions();
         if (!translatedText) {
             alert("❌ Translation failed.");
             setLoading(false);
@@ -119,34 +141,47 @@ const handleSendText = async () => {
         setLiveCaptions(translatedText); // 🔹 Update live captions
 
         // 🎙 Step 4: Convert Translated Text to Speech (Using OpenAI TTS)
+        let lang = languageMap.get(targetLang)
+        console.log("🔈 Target Language Code:", languageMap.get(targetLang));
+        console.log("Lang test for testing",targetLang);
         const ttsOptions = {
-            method: "POST",
-            url: "https://open-ai-text-to-speech1.p.rapidapi.com/",
-            headers: {
-                "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
-                "x-rapidapi-host": "open-ai-text-to-speech1.p.rapidapi.com",
-                "Content-Type": "application/json",
-            },
-            responseType: "arraybuffer",
-            data: {
-                model: "tts-1",
-                input: translatedText,
-                voice: "alloy",
-            },
-        };
-
-        console.log("🎧 Converting to Speech...");
-        const ttsResponse = await axios.request(ttsOptions);
-
-        // 🎵 Step 5: Play & Store Audio
-        const audioBlob = new Blob([ttsResponse.data], { type: "audio/mp3" });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setTranslatedAudio(audioUrl); // 🔹 Save audio URL
-
-        const audio = new Audio(audioUrl);
-        audio.play();
-
-        setLoading(false);
+          method: "POST",
+          url: "http://localhost:3000/api/synthesize",
+          headers: {
+              "Content-Type": "application/json"
+          },
+          data: {
+              text: translatedText, // Pass only text
+              languageCode: lang || "te-IN" // Ensure correct language code
+          }
+      };
+      
+      console.log("🎧 Converting to Speech...");
+      const ttsResponse = await axios.request(ttsOptions);
+      
+      // 🎵 Step 5: Convert and Play Audio
+      const base64ToArrayBuffer = (base64) => {
+        const binaryString = atob(base64); // Decode Base64
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+      };
+      
+      const audioBuffer = base64ToArrayBuffer(ttsResponse.data.audioContent);
+      const audioBlob = new Blob([audioBuffer], { type: "audio/mp3" });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      setTranslatedAudio(audioUrl);
+      
+      const audio = new Audio(audioUrl);
+      audio.play();
+      setLoading(false);
+      console.log(ttsResponse); // Debugging
+      console.log(ttsResponse.data.audioContent);
+            
     } catch (error) {
         setLoading(false);
         console.error("❌ API Error:", error);
@@ -154,34 +189,123 @@ const handleSendText = async () => {
     }
 };
 
+const handleSpeechInput = async () => {
+  try {
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
 
-  const handleSpeechInput = async () => {
     setIsListening(true);
-    const options = {
-      method: "POST",
-      url: SPEECH_TO_TEXT_API,
-      headers: {
-        "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
-        "x-rapidapi-host": "openai-whisper-speech-to-text-api.p.rapidapi.com",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      data: new URLSearchParams({ type: "RAPID", response_format: "JSON" }),
+    setLiveCaptions("🎤 Listening...");
+
+    const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(mediaStream, { mimeType: "audio/webm" });
+    let audioChunks = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
     };
 
-    try {
-      const response = await axios.request(options);
+    mediaRecorder.onstop = async () => {
       setIsListening(false);
-      if (response.data?.text) {
-        setTextInput(response.data.text);
+      if (audioChunks.length === 0) {
+        alert("No audio detected. Please try again.");
+        return;
       }
-    } catch (error) {
-      setIsListening(false);
-      console.error("❌ Speech-to-Text API Error:", error);
-    }
-  };
+
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Audio = reader.result.split(",")[1];
+
+        try {
+          const sttResponse = await axios.post("http://localhost:3000/api/speech-to-text", {
+            audioContent: base64Audio,
+            languageCode: settings.language1,
+            alternativeLanguageCodes: [settings.language2],
+          });
+
+          const detectedLang = sttResponse.data.detectedLanguage;
+          const transcribedText = sttResponse.data.transcribedText;
+
+          if (!transcribedText) {
+            alert("Speech recognition failed.");
+            return;
+          }
+
+          setLiveCaptions(transcribedText);
+          console.log("Captured Speech:", transcribedText);
+
+          // Translate text
+          let targetLang = detectedLang === settings.language1 ? settings.language2 : settings.language1;
+          const translateResponse = await axios.post(
+            "https://google-translator9.p.rapidapi.com/v2",
+            { q: transcribedText, source: detectedLang, target: targetLang, format: "text" },
+            {
+              headers: {
+                "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
+                "x-rapidapi-host": "google-translator9.p.rapidapi.com",
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const translatedText = translateResponse.data?.data?.translations?.[0]?.translatedText || "";
+          setTranslatedText(translatedText);
+          setLiveCaptions(translatedText);
+
+          // Convert to speech
+          const lang = languageMap.get(targetLang);
+          const ttsResponse = await axios.post("http://localhost:3000/api/synthesize", {
+            text: translatedText,
+            languageCode: lang || "te-IN",
+          });
+
+          const base64ToArrayBuffer = (base64) => {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+          };
+
+          const audioBuffer = base64ToArrayBuffer(ttsResponse.data.audioContent);
+          const audioBlob = new Blob([audioBuffer], { type: "audio/mp3" });
+          const audioUrl = URL.createObjectURL(audioBlob);
+
+          setTranslatedAudio(audioUrl);
+          const audio = new Audio(audioUrl);
+          audio.play();
+        } catch (error) {
+          console.error("Error processing translation:", error);
+          alert("Error processing translation.");
+        }
+      };
+
+      reader.readAsDataURL(audioBlob);
+    };
+
+    mediaRecorder.start();
+    setTimeout(() => {
+      mediaRecorder.stop();
+    }, 5000); // Auto-stop after 5 seconds
+
+  } catch (error) {
+    console.error("Error in handleSpeechInput:", error);
+    setIsListening(false);
+  }
+};
+
+
 
   return (
     <div className="translation-page">
+      {/* ---------- Header remains unchanged ---------- */}
       <header className="translation-header">
         <div className="header-left">
           <span className="logo">🔵</span>
@@ -202,44 +326,155 @@ const handleSendText = async () => {
           </motion.button>
         )}
       </header>
+  
+      {/* ---------- New Main Content Container ---------- */}
+      <div className="translation-container">
+  {/* ========== Box 1: Text Input (Both Users Choose Text) ========== */}
+  {settings?.inputMethod1 === "text" && settings?.inputMethod2 === "text" && (
+    <div className="box text-box">
+      <h2>Text Input</h2>
+      <textarea
+        className="text-input"
+        placeholder="Type text here..."
+        value={textInput}
+        onChange={(e) => setTextInput(e.target.value)}
+      ></textarea>
 
-      <div className="translation-interface">
-        {settings?.inputMethod1 === "text" || settings?.inputMethod2 === "text" ? (
-          <div className="text-editor-container">
-            <h2>Text Input</h2>
-            <textarea
-              className="text-input"
-              placeholder="Type text here..."
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-            ></textarea>
-            <button 
-            onClick={() => translatedAudio && new Audio(translatedAudio).play()} 
-            disabled={!translatedAudio}
-             className="repeat-btn">
-            🔄 Repeat
-            </button>
-            <button onClick={handleSendText} disabled={loading}>
-              {loading ? "Translating..." : "Send Text"}
-            </button>
-            <button className="mic-btn" onClick={handleSpeechInput} disabled={isListening}>
-              {isListening ? "Listening..." : <FaMicrophone />}
-            </button>
-          </div>
-        ) : (
-          <p>No text input method selected.</p>
-        )}
+      <div className="button-row">
+        <button
+          className="send-btn"
+          onClick={handleSendText}
+          disabled={loading}
+        >
+          {loading ? "Translating..." : "Send"}
+        </button>
       </div>
+    </div>
+  )}
 
+  {/* ========== Box 2: Voice Input (Both Users Choose Voice) ========== */}
+  {settings?.inputMethod1 === "voice" && settings?.inputMethod2 === "voice" && (
+    <div className="box voice-box">
+      <h2>Voice Input</h2>
+      <div className="mic-container">
+        {/* Microphone Animation */}
+        <div className="mic-level-bars">
+          {[...Array(micLevel)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="mic-bar"
+              initial={{ height: 0 }}
+              animate={{ height: `${(i + 1) * 5}px` }}
+              transition={{ duration: 0.2 }}
+            />
+          ))}
+        </div>
+        <button
+         className={`mic-btn ${isListening ? "recording" : ""}`}
+         onClick={handleSpeechInput}>
+         <FaMicrophone />
+         </button>
+
+      </div>
+    </div>
+  )}
+
+  {/* ========== Box 3: Mixed Input (Either User Chooses Text or Voice) ========== */}
+  {(settings?.inputMethod1 !== settings?.inputMethod2) && (
+    <div className="box mixed-box">
+      <div className="box text-box">
+      <h2>Text Input</h2>
+      <textarea
+        className="text-input"
+        placeholder="Type text here..."
+        value={textInput}
+        onChange={(e) => setTextInput(e.target.value)}
+      ></textarea>
+
+      <div className="button-row">
+        <button
+          className="send-btn"
+          onClick={handleSendText}
+          disabled={loading}
+        >
+          {loading ? "Translating..." : "Send"}
+        </button>
+      </div>
+    </div>
+
+    <div className="box voice-box">
+      <h2>Voice Input</h2>
+      <div className="mic-container">
+        {/* Microphone Animation */}
+        <div className="mic-level-bars">
+          {[...Array(micLevel)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="mic-bar"
+              initial={{ height: 0 }}
+              animate={{ height: `${(i + 1) * 5}px` }}
+              transition={{ duration: 0.2 }}
+            />
+          ))}
+        </div>
+        <button
+        className={`mic-btn ${isListening ? "recording" : ""}`}
+        onClick={handleSpeechInput} >
+         <FaMicrophone />
+        </button>
+
+      </div>
+    </div>
+    </div>  
+  )}
+</div>
+
+
+  
+      {/* ---------- Live Captions & Repeat Button ---------- */}
       <motion.div
+        ref={liveCaptionsRef}
         className="live-captions"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        {liveCaptions}
+        <motion.div
+          className="live-captions-text"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 1 },
+            visible: {
+              transition: {
+                staggerChildren: 0.03,
+              },
+            },
+          }}
+        >
+          {liveCaptions.split("").map((char, i) => (
+            <motion.span
+              key={i}
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                visible: { opacity: 1, y: 0 },
+              }}
+            >
+              {char}
+            </motion.span>
+          ))}
+        </motion.div>
+        
+        <button
+          onClick={() => translatedAudio && new Audio(translatedAudio).play()}
+          disabled={!translatedAudio}
+          className="repeat-btn"
+        >
+          🔄 Repeat
+        </button>
       </motion.div>
-
+  
+      {/* ---------- Modal and Footer remain unchanged ---------- */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -255,10 +490,9 @@ const handleSendText = async () => {
           </div>
         </div>
       )}
-
-      <footer className="footer">Footer</footer>
+  
+      
     </div>
   );
-};
-
+};  
 export default TranslationPage;

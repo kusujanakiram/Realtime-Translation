@@ -1,4 +1,10 @@
 /* General Styling */
+body, html {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
 body {
   font-family: "Poppins", sans-serif;
   background: #f4f4f4;
@@ -49,12 +55,11 @@ body {
   border-radius: 50%;
   cursor: pointer;
   transition: 0.3s;
-  margin: 10px;
+  margin-top: 110px;
 }
 
 .exit-btn:hover {
   background: #0400803c;
-
 }
 
 /* Termination Button Animation */
@@ -62,58 +67,21 @@ body {
   position: absolute;
   right: 20px;
   top: 50px;
-  background: red;
+  background: #0056b3;
   color: white;
   border: none;
   padding: 8px 15px;
   font-weight: bold;
   cursor: pointer;
   border-radius: 5px;
-  margin-top: 10px;
+  margin-top: 60px;
   transition: transform 0.01s ease-in-out;
 }
 
 .terminate-btn:hover {
+  background: red;
   transform: translateX(-5px);
 }
-
-/* Live Captions */
-.live-captions {
-  margin-top: 30px; /* More spacing */
-  padding: 15px 25px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  font-style: italic;
-  font-size: 20px; /* Bigger text */
-  font-weight: bold;
-  text-align: center;
-  min-width: 50%;
-}
-
-/* Start & Stop Button */
-.start-btn {
-  margin-top: 25px;
-  padding: 15px 30px;
-  background: #4caf50;
-  color: white;
-  font-size: 20px; /* Bigger button */
-  font-weight: bold;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.start-btn:hover {
-  background: #388e3c;
-}
-
-/* Stop Button */
-.stop-btn {
-  background: #dc3545;
-}
-
 
 /* Modal */
 .modal-overlay {
@@ -157,46 +125,53 @@ body {
 }
 
 /* Footer */
-.footer {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: #2266aa;
-  color: white;
-  text-align: center;
-  padding: 10px 0;
-  font-style: italic;
-}
-.translation-interface {
+
+
+/* New Translation Interface Container */
+.translation-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-wrap: wrap; /* allows stacking on small screens */
   justify-content: center;
+  align-items: flex-start;
   width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 20px;
+  max-width: 1200px;
+  margin-top: 80px; /* prevents overlap with fixed header */
+  gap: 20px;
+}
+
+/* Box for Text or Voice Input */
+.box {
   background: #f9f9f9;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  min-width: 300px;
+  max-width: 500px;
+  padding: 10px;
+  margin: 10px;
 }
 
-.text-editor-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-.text-editor-container h2 {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
+.box h2 {
+  margin-top: 0;
+  text-align: center;
   color: #333;
 }
 
+/* Responsive Stacking on Small Screens */
+@media (max-width: 768px) {
+  .translation-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  .box {
+    max-width: 90%;
+  }
+}
+
+/* Text Input Area */
 .text-input {
   width: 100%;
-  height: 150px;
+  height: 120px;
   padding: 10px;
   font-size: 1rem;
   border: 1px solid #ccc;
@@ -210,6 +185,81 @@ body {
   border-color: #007bff;
 }
 
+/* Button Row inside Text Box */
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.send-btn,
+.mic-btn,
+.repeat-btn {
+  padding: 10px 15px;
+  font-size: 1rem;
+  background-color: #007bff;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.send-btn:hover,
+.mic-btn:hover,
+.repeat-btn:hover {
+  background-color: #00b34b;
+}
+
+/* Voice Box Mic Container */
+.voice-box .mic-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Mic-level Bars */
+.mic-level-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  margin-top: 10px;
+  width: 100%;  /* adjust as needed */
+  height: 130px;  /* total height for bars */
+  background: #eee;
+  border-radius: 8px;
+  padding: 5px;
+}
+
+.mic-bar {
+  width: 5px;
+  background: #007bff;
+  border-radius: 2px;
+}
+
+/* Live Captions */
+.live-captions {
+  margin: 30px auto;
+  padding: 15px 25px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  width: 80%;
+  max-width: 600px;
+  text-align: center;
+}
+
+/* Animated Live Captions Text */
+.live-captions-text {
+  display: inline-block;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+/* Old button style (if needed) - can be removed if using specific classes above */
 button {
   margin-top: 10px;
   padding: 10px 15px;
@@ -224,4 +274,27 @@ button {
 
 button:hover {
   background-color: #0056b3;
+}
+.mixed-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+  
+  margin: 20px auto;
+}
+.repeat-btn{
+  display: block;
+  justify-content: center;
+}
+.live-captions{
+  display: block;
+  justify-content: center;
+  z-index: 1;
 }
