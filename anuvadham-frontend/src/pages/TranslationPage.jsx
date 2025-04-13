@@ -23,14 +23,101 @@ const TranslationPage = () => {
   const [translatedText, setTranslatedText] = useState(""); // Store translated text
   const liveCaptionsRef = useRef(null);
   const [micLevel, setMicLevel] = useState(0);
+  const allAudioBlobs = [];
   const [audioBlob, setAudioBlob] = useState(null);
   const mediaRecorderRef = useRef(null);
   const textRef = useRef(""); // Stores full translated text
   const audioChunksRef = useRef([]);
   const waveformRef = useRef(null);
   const wavesurfer = useRef(null);
-  const allAudioBlobs = [];
-  const conversationHistory = [];
+  const allAudioBlobsRef = useRef([]);
+  let mergedAudioRef = useRef(null);
+  let mergedText = useRef("");
+
+const appendToMergedText = (text, type) => {
+  if (type == "original") {
+    mergedText.current += `Original: ${text}\n`;
+  } else if (type == "translated") {
+    mergedText.current += `Translated: ${text}\n\n`;
+  }
+};
+
+const mergeAudioBlobs = async (audioBlobs) => {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const decodedBuffers = [];
+
+  for (const blob of audioBlobs) {
+    if (blob && blob.size > 0) {
+      const arrayBuffer = await blob.arrayBuffer();
+      try {
+        const decoded = await audioContext.decodeAudioData(arrayBuffer);
+        decodedBuffers.push(decoded);
+      } catch (err) {
+        console.warn("❌ Failed to decode blob:", err);
+      }
+    }
+  }
+
+  if (decodedBuffers.length === 0) {
+    console.warn("⚠️ No valid audio buffers to merge.");
+    return;
+  }
+
+  const totalLength = decodedBuffers.reduce((sum, buf) => sum + buf.length, 0);
+  const numberOfChannels = Math.max(...decodedBuffers.map(buf => buf.numberOfChannels));
+  const sampleRate = audioContext.sampleRate;
+
+  const mergedBuffer = audioContext.createBuffer(numberOfChannels, totalLength, sampleRate);
+  let offset = 0;
+
+  decodedBuffers.forEach(buffer => {
+    for (let channel = 0; channel < numberOfChannels; channel++) {
+      const channelData = mergedBuffer.getChannelData(channel);
+      channelData.set(buffer.getChannelData(channel % buffer.numberOfChannels), offset);
+    }
+    offset += buffer.length;
+  });
+
+  // Convert merged buffer to WAV Blob
+  const mergedBlob = await audioBufferToWavBlob(mergedBuffer);
+  mergedAudioRef.current = mergedBlob; // 🔁 Store in global ref
+  console.log("✅ Merged audio stored in mergedAudioRef:", mergedBlob);
+};
+
+// Exported helper to convert AudioBuffer to WAV Blob
+const audioBufferToWavBlob = (buffer) => {
+  return new Promise(resolve => {
+    const numOfChan = buffer.numberOfChannels;
+    const length = buffer.length * numOfChan * 2 + 44;
+    const bufferOut = new ArrayBuffer(length);
+    const view = new DataView(bufferOut);
+    const channels = [], sampleRate = buffer.sampleRate;
+
+    let pos = 0;
+    const writeStr = (str) => { for (let i = 0; i < str.length; i++) view.setUint8(pos++, str.charCodeAt(i)); };
+    const write16 = (val) => { view.setUint16(pos, val, true); pos += 2; };
+    const write32 = (val) => { view.setUint32(pos, val, true); pos += 4; };
+
+    writeStr('RIFF'); write32(length - 8); writeStr('WAVE');
+    writeStr('fmt '); write32(16); write16(1); write16(numOfChan);
+    write32(sampleRate); write32(sampleRate * numOfChan * 2);
+    write16(numOfChan * 2); write16(16);
+    writeStr('data'); write32(length - pos - 4);
+
+    for (let i = 0; i < numOfChan; i++) channels.push(buffer.getChannelData(i));
+
+    for (let i = 0; i < buffer.length; i++) {
+      for (let c = 0; c < numOfChan; c++) {
+        let sample = Math.max(-1, Math.min(1, channels[c][i]));
+        sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+        view.setInt16(pos, sample, true);
+        pos += 2;
+      }
+    }
+
+    resolve(new Blob([view], { type: 'audio/wav' }));
+  });
+};
 
   const [lang, setLang] = useState(settings?.language1);
   useEffect(() => {
@@ -67,27 +154,6 @@ const TranslationPage = () => {
     }
     return () => clearInterval(animation);
   }, [isListening]);
-
-  const mergeTextConversation = (text, type) => {
-    if (type === "original") {
-      conversationHistory.push({
-        originalText: text,
-        translatedText: "", // placeholder
-      });
-    } else if (type === "translated") {
-      const lastEntry = conversationHistory[conversationHistory.length - 1];
-      if (lastEntry && lastEntry.translatedText === "") {
-        lastEntry.translatedText = text;
-      } else {
-        // In case original was not added (failsafe)
-        conversationHistory.push({
-          originalText: "",
-          translatedText: text,
-        });
-      }
-    }
-  };
-  
 
   const visualizeMicrophoneInput = (stream) => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -175,7 +241,8 @@ const handleSendText = async () => {
             },
             data: { q: textInput },
         };
-
+        appendToMergedText(textInput, "original");
+        console.log("merged text :",mergedText)
         console.log("🔍 Detecting Language...");
         const detectResponse = await axios.request(detectOptions);
         const detectedLang = detectResponse.data?.data?.detections?.[0]?.[0]?.language;
@@ -233,6 +300,8 @@ const handleSendText = async () => {
         }
 
         console.log("🔤 Translated Text:", translatedText);
+        appendToMergedText(translatedText, "translated"); // Append translated text to merged text
+        console.log("merged text :",mergedText)
         setTranslatedText(translatedText); // 🔹 Save translated text
         setLiveCaptions(translatedText); // 🔹 Update live captions
 
@@ -268,6 +337,10 @@ const handleSendText = async () => {
       
       const audioBuffer = base64ToArrayBuffer(ttsResponse.data.audioContent);
       const audioBlob = new Blob([audioBuffer], { type: "audio/mp3" });
+      allAudioBlobsRef.current.push(audioBlob);
+      console.log("merge audio length:", allAudioBlobsRef.current?.length);
+      await mergeAudioBlobs(allAudioBlobsRef.current);
+      console.log("merge audio length : ",mergedAudioRef.length)
       const audioUrl = URL.createObjectURL(audioBlob);
       
       setTranslatedAudio(audioUrl);
@@ -276,7 +349,7 @@ const handleSendText = async () => {
       audio.play();
       setLoading(false);
       console.log(ttsResponse); // Debugging
-      console.log(ttsResponse.data.audioContent);
+      console.log("Translation Audio Length : ",ttsResponse.data.audioContent.length);
             
     } catch (error) {
         setLoading(false);
@@ -316,14 +389,17 @@ const handleSpeechInput = async () => {
         console.log("🔹 Audio blob created:", audioBlob.size, "bytes");
         setAudioBlob(audioBlob);
         console.log("✅ Audio recorded:", audioBlob);
-
+        
         try {
+          allAudioBlobsRef.current.push(audioBlob);
+          console.log("merge audio length:", allAudioBlobsRef.current?.length);
+          await mergeAudioBlobs(allAudioBlobsRef.current);
           const audioBase64 = await convertBlobToBase64(audioBlob);
           console.log("🎵 Audio converted to Base64:", audioBase64.slice(0, 50) + "...");
 
           const transcript = await transcribeAudio(audioBase64);
-          mergeTextConversation(transcript, "original"); 
-          console.log("conversation history",conversationHistory);
+          appendToMergedText(transcript, "original"); // Append original text to merged text
+          console.log("merged text in transcribe : ",mergedText)
           setTranslatedText(transcript);
           setLiveCaptions(transcript);
           scrollToCaptions();
@@ -344,8 +420,8 @@ const handleSpeechInput = async () => {
           }
 
           console.log("🔤 Translated Text:", translatedText);
-          mergeTextConversation(translatedText, "translated"); 
-          console.log("conversation history",conversationHistory);
+          appendToMergedText(translatedText, "translated"); // Append translated text to merged text
+          console.log("merged text in translate : ",mergedText)
           setTranslatedText(translatedText);
           setLiveCaptions(translatedText);
           scrollToCaptions();
@@ -453,6 +529,9 @@ const synthesizeSpeech = async (text, languageCode) => {
     const audioBlob = new Blob([audioBuffer], { type: "audio/mp3" });
     allAudioBlobs.push(audioBlob);
     console.log("🔹 Audio blob created:", audioBlob.size, "bytes");
+    allAudioBlobsRef.current.push(audioBlob);
+    console.log("merge audio length:", allAudioBlobsRef.current?.length);
+    await mergeAudioBlobs(allAudioBlobsRef.current);
     const audioUrl = URL.createObjectURL(audioBlob);
 
     setTranslatedAudio(audioUrl);
@@ -483,19 +562,23 @@ function downloadBlob(blob, filename) {
 }
 const handleDownloadAll = () => {
   // Download Merged Full Audio (input + output)
-  const mergedAudio = new Blob(allAudioBlobs, { type: 'audio/wav' });
-  console.log("🔹 Merged Audio Blob:", mergedAudio.size, "bytes");
-  const mergedText = conversationHistory
-    .map((turn, index) => 
-      `Turn ${index + 1}\nOriginal: ${turn.originalText}\nTranslated: ${turn.translatedText}`
-    )
-    .join('\n\n');
-
-  const textBlob = new Blob([mergedText], { type: 'text/plain' });
-  console.log("🔹 Merged Text Blob:", textBlob.size, "bytes",textBlob);
-
-  downloadBlob(mergedAudio, 'conversation_audio.wav');
-  downloadBlob(textBlob, 'conversation_text.txt');
+  console.log("🔹 Merged Audio Blob:", mergedAudioRef.current.size, "bytes");
+  if (mergedAudioRef.current) {
+    downloadBlob(mergedAudioRef.current, "conversation.wav");
+    console.log("🔹 Merged Audio Blob:", mergedAudioRef.current.size, "bytes");
+  } else {
+    console.log("⚠️ No merged audio available to download.");
+  }
+  
+  console.log("merged text in handle download : ",mergedText)
+  
+  if (mergedText.current.trim() !== "") {
+    const textBlob = new Blob([mergedText.current], { type: 'text/plain' });
+    console.log("🔹 Merged Text Blob:", textBlob.size, "bytes", textBlob);
+    downloadBlob(textBlob, "conversation.txt");
+  } else {
+    console.log("⚠️ No text content to download.");
+  }
 
   // Navigate to Home Page after Download
   navigate("/");
