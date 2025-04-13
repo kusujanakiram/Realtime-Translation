@@ -6,4 +6,7 @@ export default defineConfig({
   server: {
     port: 5174, // Now Vite will use port 5174
   },
+  optimizeDeps: {
+    include: ["@ffmpeg/ffmpeg"],
+  },
 })

@@ -1,10 +1,12 @@
 import React, { useState, useEffect,useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import * as WaveSurfer from "wavesurfer.js";
 import { motion } from "framer-motion";
-import { FaArrowLeft, FaMicrophone } from "react-icons/fa";
+import { FaArrowLeft, FaMicrophone, FaStop } from "react-icons/fa";
 import axios from "axios";
 import "./TranslationPage.css";
 import languageMap from "../languageMap";
+import languageNameMap from "../languageNameMap";
 
 
 
@@ -21,8 +23,33 @@ const TranslationPage = () => {
   const [translatedText, setTranslatedText] = useState(""); // Store translated text
   const liveCaptionsRef = useRef(null);
   const [micLevel, setMicLevel] = useState(0);
-  
-  
+  const [audioBlob, setAudioBlob] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const textRef = useRef(""); // Stores full translated text
+  const audioChunksRef = useRef([]);
+  const waveformRef = useRef(null);
+  const wavesurfer = useRef(null);
+  const allAudioBlobs = [];
+  const conversationHistory = [];
+
+  const [lang, setLang] = useState(settings?.language1);
+  useEffect(() => {
+    const storedSettings = localStorage.getItem("translationSettings");
+    if (storedSettings) {
+      try {
+        const parsedSettings = JSON.parse(storedSettings);
+        console.log("🔹 Loaded Settings from localStorage:", parsedSettings);
+        setSettings(parsedSettings);
+        setLang(parsedSettings.language1 || "en-IN");
+      } catch (error) {
+        console.error("❌ Error parsing localStorage data:", error);
+        setLang("en-IN");
+      }
+    } else {
+      console.warn("⚠️ No translation settings found in localStorage.");
+      setLang("en-IN");
+    }
+  }, []);
 
   const scrollToCaptions = () => {
     if (liveCaptionsRef.current) {
@@ -40,22 +67,91 @@ const TranslationPage = () => {
     }
     return () => clearInterval(animation);
   }, [isListening]);
-  
-  
-  useEffect(() => {
-    const storedSettings = localStorage.getItem("translationSettings");
-    if (storedSettings) {
-      try {
-        const parsedSettings = JSON.parse(storedSettings);
-        console.log("🔹 Loaded Settings from localStorage:", parsedSettings);
-        setSettings(parsedSettings);
-      } catch (error) {
-        console.error("❌ Error parsing localStorage data:", error);
+
+  const mergeTextConversation = (text, type) => {
+    if (type === "original") {
+      conversationHistory.push({
+        originalText: text,
+        translatedText: "", // placeholder
+      });
+    } else if (type === "translated") {
+      const lastEntry = conversationHistory[conversationHistory.length - 1];
+      if (lastEntry && lastEntry.translatedText === "") {
+        lastEntry.translatedText = text;
+      } else {
+        // In case original was not added (failsafe)
+        conversationHistory.push({
+          originalText: "",
+          translatedText: text,
+        });
       }
-    } else {
-      console.warn("⚠️ No translation settings found in localStorage.");
     }
-  }, []);
+  };
+  
+
+  const visualizeMicrophoneInput = (stream) => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    const microphone = audioContext.createMediaStreamSource(stream);
+    microphone.connect(analyser);
+    
+    analyser.fftSize = 512;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+  
+    const canvas = waveformRef.current;
+    const canvasCtx = canvas.getContext("2d");
+    canvas.width = 500;
+    canvas.height = 100;
+  
+    const drawWaveform = () => {
+      requestAnimationFrame(drawWaveform);
+      analyser.getByteFrequencyData(dataArray); // Use frequency data instead
+      
+      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+      canvasCtx.fillStyle = "white";
+      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    
+      const gradient = canvasCtx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, "#007bff"); // Light blue
+      gradient.addColorStop(0.5, "rgba(12, 105, 198, 0.5)"); // White for a soft transition
+      gradient.addColorStop(1, "blue"); // Royal blue
+      
+      canvasCtx.strokeStyle = gradient;
+      canvasCtx.shadowBlur = 15;
+      canvasCtx.shadowColor = "rgba(34, 102, 170, 0.5)"; // Soft blue glow
+      canvasCtx.lineWidth = 3; 
+      
+      canvasCtx.beginPath();
+    
+      let sliceWidth = canvas.width / bufferLength;
+      let x = 0;
+    
+      for (let i = 0; i < bufferLength; i++) {
+        let v = dataArray[i] / 255.0; // Normalize (0 to 1)
+        let y = (v * canvas.height) / 2; // Scale for height
+        
+        let centerY = canvas.height / 2;
+    
+        if (i === 0) {
+          canvasCtx.moveTo(x, centerY - y);
+        } else {
+          canvasCtx.lineTo(x, centerY - y);
+        }
+    
+        // Draw the mirrored waveform
+        canvasCtx.lineTo(x, centerY + y);
+    
+        x += sliceWidth;
+      }
+    
+      canvasCtx.stroke();
+    };
+    
+  
+    drawWaveform();
+  };
+  
 
 const handleSendText = async () => {
     console.log("⚡ Current Settings:", settings);
@@ -141,7 +237,7 @@ const handleSendText = async () => {
         setLiveCaptions(translatedText); // 🔹 Update live captions
 
         // 🎙 Step 4: Convert Translated Text to Speech (Using OpenAI TTS)
-        let lang = languageMap.get(targetLang)
+         languageMap.get(targetLang)
         console.log("🔈 Target Language Code:", languageMap.get(targetLang));
         console.log("Lang test for testing",targetLang);
         const ttsOptions = {
@@ -152,7 +248,7 @@ const handleSendText = async () => {
           },
           data: {
               text: translatedText, // Pass only text
-              languageCode: lang || "te-IN" // Ensure correct language code
+              languageCode: languageMap.get(targetLang) || "te-IN" // Ensure correct language code
           }
       };
       
@@ -190,117 +286,220 @@ const handleSendText = async () => {
 };
 
 const handleSpeechInput = async () => {
-  try {
-    if (isListening) {
-      setIsListening(false);
-      return;
-    }
-
+  if (!isListening) {
     setIsListening(true);
-    setLiveCaptions("🎤 Listening...");
+    setLiveCaptions("Listening...");
+    console.log("🎤 Microphone activated. Recording started...");
 
-    const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const mediaRecorder = new MediaRecorder(mediaStream, { mimeType: "audio/webm" });
-    let audioChunks = [];
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("✅ Microphone access granted.");
+      visualizeMicrophoneInput(stream);
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
 
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunks.push(event.data);
-      }
-    };
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-    mediaRecorder.onstop = async () => {
-      setIsListening(false);
-      if (audioChunks.length === 0) {
-        alert("No audio detected. Please try again.");
-        return;
-      }
-
-      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Audio = reader.result.split(",")[1];
-
-        try {
-          const sttResponse = await axios.post("http://localhost:3000/api/speech-to-text", {
-            audioContent: base64Audio,
-            languageCode: settings.language1,
-            alternativeLanguageCodes: [settings.language2],
-          });
-
-          const detectedLang = sttResponse.data.detectedLanguage;
-          const transcribedText = sttResponse.data.transcribedText;
-
-          if (!transcribedText) {
-            alert("Speech recognition failed.");
-            return;
-          }
-
-          setLiveCaptions(transcribedText);
-          console.log("Captured Speech:", transcribedText);
-
-          // Translate text
-          let targetLang = detectedLang === settings.language1 ? settings.language2 : settings.language1;
-          const translateResponse = await axios.post(
-            "https://google-translator9.p.rapidapi.com/v2",
-            { q: transcribedText, source: detectedLang, target: targetLang, format: "text" },
-            {
-              headers: {
-                "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
-                "x-rapidapi-host": "google-translator9.p.rapidapi.com",
-                "Content-Type": "application/json",
-              },
-            }
-          );
-
-          const translatedText = translateResponse.data?.data?.translations?.[0]?.translatedText || "";
-          setTranslatedText(translatedText);
-          setLiveCaptions(translatedText);
-
-          // Convert to speech
-          const lang = languageMap.get(targetLang);
-          const ttsResponse = await axios.post("http://localhost:3000/api/synthesize", {
-            text: translatedText,
-            languageCode: lang || "te-IN",
-          });
-
-          const base64ToArrayBuffer = (base64) => {
-            const binaryString = atob(base64);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            return bytes.buffer;
-          };
-
-          const audioBuffer = base64ToArrayBuffer(ttsResponse.data.audioContent);
-          const audioBlob = new Blob([audioBuffer], { type: "audio/mp3" });
-          const audioUrl = URL.createObjectURL(audioBlob);
-
-          setTranslatedAudio(audioUrl);
-          const audio = new Audio(audioUrl);
-          audio.play();
-        } catch (error) {
-          console.error("Error processing translation:", error);
-          alert("Error processing translation.");
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+          console.log("🔹 Audio chunk received:", event.data.size, "bytes");
         }
       };
 
-      reader.readAsDataURL(audioBlob);
-    };
+      mediaRecorder.onstop = async () => {
+        console.log("⏹️ Recording stopped.");
+        setIsListening(false);
 
-    mediaRecorder.start();
-    setTimeout(() => {
-      mediaRecorder.stop();
-    }, 5000); // Auto-stop after 5 seconds
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+        allAudioBlobs.push(audioBlob);
+        console.log("🔹 Audio blob created:", audioBlob.size, "bytes");
+        setAudioBlob(audioBlob);
+        console.log("✅ Audio recorded:", audioBlob);
 
-  } catch (error) {
-    console.error("Error in handleSpeechInput:", error);
+        try {
+          const audioBase64 = await convertBlobToBase64(audioBlob);
+          console.log("🎵 Audio converted to Base64:", audioBase64.slice(0, 50) + "...");
+
+          const transcript = await transcribeAudio(audioBase64);
+          mergeTextConversation(transcript, "original"); 
+          console.log("conversation history",conversationHistory);
+          setTranslatedText(transcript);
+          setLiveCaptions(transcript);
+          scrollToCaptions();
+
+          if (!transcript) {
+            alert("❌ Transcription failed.");
+            setLoading(false);
+            return;
+          }
+
+          let sourceLang = lang; 
+          let targetLang = lang == settings.language1 ? settings.language2 : settings.language1;
+          const translatedText = await translateText(transcript, sourceLang, targetLang);
+          if (!translatedText) {
+            alert("❌ Translation failed.");
+            setLoading(false);
+            return;
+          }
+
+          console.log("🔤 Translated Text:", translatedText);
+          mergeTextConversation(translatedText, "translated"); 
+          console.log("conversation history",conversationHistory);
+          setTranslatedText(translatedText);
+          setLiveCaptions(translatedText);
+          scrollToCaptions();
+          const targetLangCode = languageMap.get(targetLang) || "te-IN";
+          console.log("🔈 Target Language Code:", targetLangCode);
+
+          await synthesizeSpeech(translatedText, targetLangCode);
+          allAudioBlobs.push(translatedAudio);
+        } catch (error) {
+          console.error("❌ Processing Error:", error);
+          alert("Error processing translation & speech.");
+        }
+        setLoading(false);
+      };
+
+      mediaRecorder.start();
+      console.log("🎙️ Recording started...");
+    } catch (error) {
+      console.error("❌ Error accessing microphone:", error);
+      setIsListening(false);
+    }
+  } else {
     setIsListening(false);
+    setLiveCaptions("Processing...");
+    console.log("⏹️ Stopping recording...");
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
   }
 };
 
+const convertBlobToBase64 = (blob) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(blob);
+  });
+};
+
+const transcribeAudio = async (audioContent) => {
+  if (!settings) {
+    console.error("⚠️ Language settings not loaded.");
+    return null;
+  }
+
+  const languageCode = languageMap.get(lang) ;
+  const alternativeLanguageCodes = [languageMap.get(settings.language2), languageMap.get(settings.language1)] ;
+
+  console.log("📤 Sending audio to API...");
+
+  try {
+    const response = await fetch("http://localhost:3000/api/speech-to-text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audioContent, languageCode, alternativeLanguageCodes }),
+    });
+
+    const data = await response.json();
+    console.log("✅ API Response:", data);
+
+    return data.transcript || null;
+  } catch (error) {
+    console.error("❌ API request failed:", error);
+    return null;
+  }
+};
+
+const translateText = async (text, sourceLang, targetLang) => {
+  try {
+    const response = await axios.post("https://google-translator9.p.rapidapi.com/v2", {
+      q: text,
+      source: sourceLang,
+      target: targetLang,
+      format: "text",
+    }, {
+      headers: {
+        "x-rapidapi-key": import.meta.env.VITE_RAPIDAPI_KEY,
+        "x-rapidapi-host": "google-translator9.p.rapidapi.com",
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("✅ Translation response:", response.data);
+    return response.data?.data?.translations?.[0]?.translatedText || "";
+  } catch (error) {
+    console.error("❌ Translation API Error:", error);
+    return "";
+  }
+};
+
+const synthesizeSpeech = async (text, languageCode) => {
+  try {
+    console.log("🎧 Converting to Speech...");
+
+    const response = await axios.post("http://localhost:3000/api/synthesize", {
+      text,
+      languageCode,
+    }, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const audioBuffer = base64ToArrayBuffer(response.data.audioContent);
+    const audioBlob = new Blob([audioBuffer], { type: "audio/mp3" });
+    allAudioBlobs.push(audioBlob);
+    console.log("🔹 Audio blob created:", audioBlob.size, "bytes");
+    const audioUrl = URL.createObjectURL(audioBlob);
+
+    setTranslatedAudio(audioUrl);
+    new Audio(audioUrl).play();
+  } catch (error) {
+    console.error("❌ TTS API Error:", error);
+  }
+};
+
+const base64ToArrayBuffer = (base64) => {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+};
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+const handleDownloadAll = () => {
+  // Download Merged Full Audio (input + output)
+  const mergedAudio = new Blob(allAudioBlobs, { type: 'audio/wav' });
+  console.log("🔹 Merged Audio Blob:", mergedAudio.size, "bytes");
+  const mergedText = conversationHistory
+    .map((turn, index) => 
+      `Turn ${index + 1}\nOriginal: ${turn.originalText}\nTranslated: ${turn.translatedText}`
+    )
+    .join('\n\n');
+
+  const textBlob = new Blob([mergedText], { type: 'text/plain' });
+  console.log("🔹 Merged Text Blob:", textBlob.size, "bytes",textBlob);
+
+  downloadBlob(mergedAudio, 'conversation_audio.wav');
+  downloadBlob(textBlob, 'conversation_text.txt');
+
+  // Navigate to Home Page after Download
+  navigate("/");
+};
 
 
   return (
@@ -356,24 +555,20 @@ const handleSpeechInput = async () => {
   {settings?.inputMethod1 === "voice" && settings?.inputMethod2 === "voice" && (
     <div className="box voice-box">
       <h2>Voice Input</h2>
-      <div className="mic-container">
-        {/* Microphone Animation */}
-        <div className="mic-level-bars">
-          {[...Array(micLevel)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="mic-bar"
-              initial={{ height: 0 }}
-              animate={{ height: `${(i + 1) * 5}px` }}
-              transition={{ duration: 0.2 }}
-            />
-          ))}
-        </div>
+      <div className="language-selector">
+      <label>Select Language:</label>
+      <select value={lang} onChange={(e) => setLang(e.target.value)}>
+        <option value={settings?.language1 || "en-IN"}>{languageNameMap.get(settings?.language1) || "English"}</option>
+        <option value={settings?.language2 || "hi-IN"}>{languageNameMap.get(settings?.language2) || "Hindi"}</option>
+      </select>
+    </div>
+    <div className="waveform-circle">
+    <div ref={waveformRef} className="waveform"></div>
         <button
-         className={`mic-btn ${isListening ? "recording" : ""}`}
-         onClick={handleSpeechInput}>
-         <FaMicrophone />
-         </button>
+       className={`mic-btn ${isListening ? "recording" : ""}`}
+       onClick={handleSpeechInput}>
+       {isListening ? <FaStop /> : <FaMicrophone />}
+       </button>
 
       </div>
     </div>
@@ -381,49 +576,74 @@ const handleSpeechInput = async () => {
 
   {/* ========== Box 3: Mixed Input (Either User Chooses Text or Voice) ========== */}
   {(settings?.inputMethod1 !== settings?.inputMethod2) && (
-    <div className="box mixed-box">
-      <div className="box text-box">
-      <h2>Text Input</h2>
-      <textarea
-        className="text-input"
-        placeholder="Type text here..."
-        value={textInput}
-        onChange={(e) => setTextInput(e.target.value)}
-      ></textarea>
-
-      <div className="button-row">
-        <button
-          className="send-btn"
-          onClick={handleSendText}
-          disabled={loading}
-        >
-          {loading ? "Translating..." : "Send"}
-        </button>
+   <div className="mixed-box">
+   <div className="box text-box">
+     <h2>Text</h2>
+ 
+     <div className="text-input-wrapper">
+       <textarea
+         className="text-input"
+         value={textInput}
+         onChange={(e) => setTextInput(e.target.value)}
+       ></textarea>
+ 
+       {textInput === "" && (
+         <div className="text-placeholder">
+           <span>Let us chat</span>
+           <span className="dots">
+             <span></span>
+             <span></span>
+             <span></span>
+           </span>
+         </div>
+       )}
+     </div>
+ 
+     <div className="button-row">
+       <button
+         className="send-btn"
+         onClick={handleSendText}
+         disabled={loading}
+       >
+         {loading ? "Translating..." : "Send"}
+       </button>
+     </div>
+   </div>
+ 
+ 
+    <div className="box voice-box">
+      <h2>Voice</h2>
+      <div className="language-selector">
+      <label>Select Language: </label>
+      <select value={lang} onChange={(e) => setLang(e.target.value)}>
+        <option value={settings?.language1 || "en-IN"}>{languageNameMap.get(settings?.language1) || "English"}</option>
+        <option value={settings?.language2 || "hi-IN"}>{languageNameMap.get(settings?.language2) || "Hindi"}</option>
+      </select>
+    </div>
+    <div className="waveform-circle">
+  {!isListening ? (
+    <div className="waveform-placeholder">
+    <div className="speak-text">
+      <div className="mic-icon"><FaMicrophone /></div> 
+      <div>
+        Let us talk 
+        <span className="dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
       </div>
     </div>
-
-    <div className="box voice-box">
-      <h2>Voice Input</h2>
-      <div className="mic-container">
-        {/* Microphone Animation */}
-        <div className="mic-level-bars">
-          {[...Array(micLevel)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="mic-bar"
-              initial={{ height: 0 }}
-              animate={{ height: `${(i + 1) * 5}px` }}
-              transition={{ duration: 0.2 }}
-            />
-          ))}
-        </div>
-        <button
-        className={`mic-btn ${isListening ? "recording" : ""}`}
-        onClick={handleSpeechInput} >
-         <FaMicrophone />
-        </button>
-
-      </div>
+  </div>
+  ) : (
+    <canvas ref={waveformRef} className="waveform-canvas"></canvas>
+  )}
+</div>
+      <button
+       className={`mic-btn ${isListening ? "recording" : ""}`}
+       onClick={handleSpeechInput}>
+       {isListening ? <FaStop /> : <FaMicrophone />}
+       </button>
     </div>
     </div>  
   )}
@@ -480,7 +700,7 @@ const handleSpeechInput = async () => {
           <div className="modal">
             <h3>Do you want to save this conversation?</h3>
             <div className="modal-buttons">
-              <button onClick={() => {}} className="modal-btn download">
+              <button onClick={handleDownloadAll} className="modal-btn download">
                 Download
               </button>
               <button onClick={() => navigate("/")} className="modal-btn cancel">
@@ -490,7 +710,8 @@ const handleSpeechInput = async () => {
           </div>
         </div>
       )}
-  
+     
+
       
     </div>
   );
