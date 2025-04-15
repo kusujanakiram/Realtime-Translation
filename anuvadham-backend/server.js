@@ -2,67 +2,107 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 require('dotenv').config();
+const mongoose = require('mongoose');
 
 const app = express();
+
 const port = 3000;
 const apiKey = process.env.API_KEY;
+const MONGO = process.env.MONGO_URI ;
+const conversationRoutes = require('./routes/conversationRoutes');
 
-app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5174'
+}));
 
-// Default settings
-const defaultTTSLanguage = "te-IN";
+app.use('/uploads', express.static('uploads'));
+
+mongoose.connect(MONGO)
+    .then(() => console.log("MongoDB connected successfully!"))
+    .catch((error) => console.log(error))
+
+
+app.use('/api/conversations', conversationRoutes);
+
+if (!apiKey) {
+  console.error("❌ API Key is missing. Check your .env file!");
+  process.exit(1);
+}
+
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.use(cors({ origin: "http://localhost:5174", credentials: true }));
+
 const defaultSTTLanguage = "en-IN";
-const alternativeLanguages = ["hi-IN"]; // Supports Hindi as an alternative
+const alternativeLanguages = ["hi-IN"];
 
-// Speech-to-Text (STT) - Convert Speech to Text
-app.post('/api/speech-to-text', async (req, res) => {
+app.post("/api/speech-to-text", async (req, res) => {
   let { audioContent, languageCode, alternativeLanguageCodes } = req.body;
 
+  console.log("✅ Received Speech-to-Text Request:");
+  console.log("🎤 Language Code:", languageCode);
+  console.log("🌐 Alternative Languages:", alternativeLanguageCodes);
+
   if (!audioContent) {
-    return res.status(400).json({ error: 'Audio content is required' });
+      console.error("❌ No audio content received.");
+      return res.status(400).json({ error: "Audio content is required" });
   }
 
-  // Default primary language
-  languageCode = languageCode || defaultLanguageCode;
-  // Default alternative languages if none are provided
-  alternativeLanguageCodes = alternativeLanguageCodes || ["hi-IN"]; 
+  console.log("🎵 Audio Length:", audioContent.length);
+  console.log("🎵 First 50 chars:", audioContent.slice(0, 50));
 
-  console.log("✅ Received Speech-to-Text Request:", { languageCode, alternativeLanguageCodes });
+  languageCode = languageCode || defaultSTTLanguage;
+  alternativeLanguageCodes = alternativeLanguageCodes || alternativeLanguages;
 
   const url = `https://speech.googleapis.com/v1/speech:recognize?key=${apiKey}`;
 
   const requestBody = {
     config: {
-      encoding: 'MP3', // Adjust format if necessary (MP3, FLAC, etc.)
-      sampleRateHertz: 16000,
-      languageCode,  // Primary language
-      alternativeLanguageCodes,  // List of alternative languages
-      enableAutomaticPunctuation: true,
+        encoding: "MP3", // Changed to MP3
+        sampleRateHertz: 24000,
+        languageCode,
+        alternativeLanguageCodes,
+       
     },
-    audio: {
-      content: audioContent,
-    },
-  };
+    audio: { content: audioContent },
+};
 
-  console.log("🔵 Sending request to Google API:", requestBody);
+  console.log("🔵 Sending request to Google API...");
 
   try {
-    const response = await axios.post(url, requestBody);
-    console.log("✅ Speech-to-Text API Response:", response.data);
+      const response = await axios.post(url, requestBody);
+      console.log("✅ Google API Response:", response.data);
 
-    const transcript = response.data.results
-      ?.map(result => result.alternatives[0]?.transcript)
-      .join(' ') || 'No transcription available';
+      if (!response.data.results || response.data.results.length === 0) {
+          console.error("❌ No transcription results.");
+          return res.status(500).json({ error: "No transcription results found." });
+      }
 
-    const detectedLanguage = response.data.results[0]?.languageCode || languageCode;
+      const transcript = response.data.results
+          .map(result => result.alternatives[0]?.transcript)
+          .join(" ") || "No transcription available";
 
-    res.json({ transcript, detectedLanguage });
+      const detectedLanguage = response.data.results[0]?.languageCode || languageCode;
+      console.log("🌍 Detected Language:", detectedLanguage);
+
+      res.json({ transcript, detectedLanguage });
   } catch (error) {
-    console.error("❌ Speech-to-Text Error:", error.response ? error.response.data : error.message);
-    res.status(500).send('Error processing speech-to-text');
+      console.error("❌ Speech-to-Text Error:");
+      if (error.response) {
+          console.error("🚨 API Response Error Status:", error.response.status);
+          console.error("🚨 API Response Headers:", error.response.headers);
+          console.error("🚨 API Response Error Data:", JSON.stringify(error.response.data, null, 2));
+          return res.status(500).json(error.response.data);
+      } else if (error.request) {
+          console.error("⚠️ No response received from API:", error.request);
+          return res.status(500).json({ error: "No response from API" });
+      } else {
+          console.error("⚠️ General Error:", error.message);
+          return res.status(500).json({ error: error.message });
+      }
   }
 });
+
 
 // Text-to-Speech (TTS) - Convert Text to Speech
 app.post('/api/synthesize', async (req, res) => {
