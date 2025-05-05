@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const protect = require('../middleware/auth');
 const {
   createConversation,
   getAllConversations,
-  getLastThreeConversations
+  getConversationById,
 } = require('../controllers/conversationController');
 
 // Multer setup
@@ -25,8 +26,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Routes
-router.post('/', upload.single('audio'), createConversation);
-router.get('/', getAllConversations);
-router.get('/latest', getLastThreeConversations);
-
+router.post('/', protect, upload.single('audio'), createConversation);
+router.get('/', protect, getAllConversations); 
+router.get('/:id', protect, getConversationById);
 module.exports = router;

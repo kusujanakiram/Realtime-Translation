@@ -1,4 +1,5 @@
 const Conversation = require('../models/ConversationModel');
+const User = require('../models/UserModel');
 
 // POST: Save a new conversation
 const createConversation = async (req, res) => {
@@ -13,44 +14,67 @@ const createConversation = async (req, res) => {
 
     const conversationAudio = req.file ? `/uploads/${req.file.filename}` : '';
 
+    let parsedPerson1, parsedPerson2;
+    try {
+      parsedPerson1 = JSON.parse(person1);
+      parsedPerson2 = JSON.parse(person2);
+    } catch (err) {
+      return res.status(400).json({ error: 'Invalid person data format' });
+    }
+
     const newConversation = new Conversation({
       conversationName,
       purpose,
-      person1: JSON.parse(person1),
-      person2: JSON.parse(person2),
+      person1: parsedPerson1,
+      person2: parsedPerson2,
       conversationText,
-      conversationAudio
+      conversationAudio,
+      user: req.user._id
     });
 
     await newConversation.save();
+
+    const user = await User.findById(req.user._id);
+    user.conversations.push(newConversation._id);
+    await user.save();
+
     res.status(201).json({ message: 'Conversation saved!', data: newConversation });
   } catch (err) {
     res.status(500).json({ error: 'Failed to save conversation', details: err.message });
   }
 };
 
-// GET: All conversations (for full list display)
+// GET: All conversations
 const getAllConversations = async (req, res) => {
   try {
-    const conversations = await Conversation.find().sort({ startTime: -1 });
+    const conversations = await Conversation.find({ user: req.user._id })
+      .sort({ startTime: -1 })  // Make sure `startTime` field exists in your model
+      .populate('user', 'name email'); // Optional: To populate user data
     res.json(conversations);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch conversations', details: err.message });
   }
 };
 
-// GET: Last 3 conversations only (for home page / recent)
-const getLastThreeConversations = async (req, res) => {
+// GET: Conversation by ID
+const getConversationById = async (req, res) => {
   try {
-    const lastThree = await Conversation.find().sort({ startTime: -1 }).limit(3);
-    res.json(lastThree);
+    const conversation = await Conversation.findById(req.params.id);
+
+    if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
+
+    if (conversation.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json(conversation);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch last 3 conversations', details: err.message });
+    res.status(500).json({ error: 'Failed to fetch conversation', details: err.message });
   }
 };
 
 module.exports = {
   createConversation,
   getAllConversations,
-  getLastThreeConversations
+  getConversationById,
 };

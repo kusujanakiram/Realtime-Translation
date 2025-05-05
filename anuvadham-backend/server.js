@@ -3,35 +3,45 @@ const axios = require('axios');
 const cors = require('cors');
 require('dotenv').config();
 const mongoose = require('mongoose');
+const path = require('path');
 
 const app = express();
-
 const port = 3000;
-const apiKey = process.env.API_KEY;
-const MONGO = process.env.MONGO_URI ;
-const conversationRoutes = require('./routes/conversationRoutes');
 
+const apiKey = process.env.API_KEY;
+const MONGO = process.env.MONGO_URI;
+
+// ✅ Body parser must come first
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// ✅ CORS setup
 app.use(cors({
-  origin: 'http://localhost:5174'
+  origin: 'http://localhost:5174',
+  credentials: true
 }));
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ✅ Static files
 app.use('/uploads', express.static('uploads'));
 
+// ✅ Routes
+const userRoutes = require('./routes/userRoute');
+const conversationRoutes = require('./routes/conversationRoutes');
+
+// ✅ DB connection
 mongoose.connect(MONGO)
     .then(() => console.log("MongoDB connected successfully!"))
     .catch((error) => console.log(error))
 
-
+app.use('/api/auth', userRoutes);
 app.use('/api/conversations', conversationRoutes);
 
+// ✅ Check API Key
 if (!apiKey) {
   console.error("❌ API Key is missing. Check your .env file!");
   process.exit(1);
 }
-
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-app.use(cors({ origin: "http://localhost:5174", credentials: true }));
 
 const defaultSTTLanguage = "en-IN";
 const alternativeLanguages = ["hi-IN"];
@@ -58,7 +68,7 @@ app.post("/api/speech-to-text", async (req, res) => {
 
   const requestBody = {
     config: {
-        encoding: "MP3", // Changed to MP3
+        encoding: "MP3", 
         sampleRateHertz: 24000,
         languageCode,
         alternativeLanguageCodes,
@@ -71,7 +81,6 @@ app.post("/api/speech-to-text", async (req, res) => {
 
   try {
       const response = await axios.post(url, requestBody);
-      console.log("✅ Google API Response:", response.data);
 
       if (!response.data.results || response.data.results.length === 0) {
           console.error("❌ No transcription results.");
@@ -103,8 +112,6 @@ app.post("/api/speech-to-text", async (req, res) => {
   }
 });
 
-
-// Text-to-Speech (TTS) - Convert Text to Speech
 app.post('/api/synthesize', async (req, res) => {
   let { text, languageCode } = req.body;
 
@@ -128,7 +135,6 @@ app.post('/api/synthesize', async (req, res) => {
 
   try {
     const response = await axios.post(url, requestBody);
-    console.log("✅ TTS API Response:", response.data);
 
     res.json({ audioContent: response.data.audioContent });
   } catch (error) {

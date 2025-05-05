@@ -6,13 +6,18 @@ const participantSchema = new mongoose.Schema({
 });
 
 const conversationSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
   conversationName: { type: String, required: true },
   purpose: { type: String, required: true },
   person1: { type: participantSchema, required: true },
   person2: { type: participantSchema, required: true },
   startTime: { type: Date, default: Date.now },
   conversationText: { type: String, default: '' },
-  conversationAudio: { type: String, default: '' } // could be a file path or URL
+  conversationAudio: { type: String, default: '' } 
 });
 
 module.exports = mongoose.model('Conversation', conversationSchema);
