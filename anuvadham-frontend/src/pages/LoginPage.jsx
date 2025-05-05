@@ -10,17 +10,34 @@ const LoginPage = () => {
 
   const isValid = email && password; // Basic validation
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Implement authentication logic here
-    // For demonstration, redirecting to Home after login
-    navigate('/');
+    console.log("🚀 Submitting login form", email, password);
+    try {
+      const response = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        alert(data.message || "Login failed");
+        return;
+      }
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      alert("Login successful!");
+      navigate('/home'); 
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Something went wrong. Please try again.");
+    }
   };
-
-  const handleGoogleLogin = () => {
-    // Implement Google API login logic here
-    alert('Google login functionality goes here.');
-  };
+  
 
   return (
     <div className="login-container">
@@ -61,11 +78,11 @@ const LoginPage = () => {
           Login
         </button>
       </form>
-      <button className="google-btn" onClick={handleGoogleLogin}>
+      <button className="google-btn" >
         Login with Google
       </button>
       <div className="additional-links">
-        <a href="/register">New user? Register</a>
+        <a href="/register">Register</a>
         <a href="/forgot-password">Forgot Password?</a>
       </div>
     </div>

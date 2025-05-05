@@ -1,23 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ProfilePage.css';
+import Header from "../components/Header";
+import { FaEdit, FaUserCircle } from 'react-icons/fa';
+import axios from 'axios';
 
 const ProfilePage = () => {
   const [profilePic, setProfilePic] = useState(null);
-  const [defaultSourceLang, setDefaultSourceLang] = useState('English');
-  const [defaultTargetLang, setDefaultTargetLang] = useState('Spanish');
-  const [theme, setTheme] = useState('light');
-  const [fontSize, setFontSize] = useState(16);
+  const [user, setUser] = useState({ name: '', email: '' });
 
-  // Dummy user information
-  const user = {
-    name: 'John Doe',
-    email: 'john.doe@example.com'
-  };
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:3000/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUser({ name: res.data.name, email: res.data.email });
+        if (res.data.profilePic) {
+          setProfilePic(`http://localhost:3000${res.data.profilePic}`);
+        }
+      } catch (error) {
+        console.error('Failed to load user info:', error);
+      }
+    };
+    fetchUser();
+  }, []);
 
-  // Update profile picture from file input
-  const handleProfilePicChange = (e) => {
+  const handleProfilePicChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      setProfilePic(URL.createObjectURL(e.target.files[0]));
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('profilePic', file);
+      formData.append('userId', localStorage.getItem('userId'));
+
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.post('http://localhost:3000/api/auth/upload-profile-pic', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setProfilePic(`http://localhost:3000${res.data.profilePic}?t=${Date.now()}`);
+      } catch (err) {
+        console.error('Error uploading profile picture:', err);
+      }
     }
   };
 
@@ -26,89 +53,58 @@ const ProfilePage = () => {
   };
 
   const handleLogout = () => {
-    alert('Logging out...');
-    // Implement logout and redirection logic here
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    window.location.href = '/';
   };
 
   return (
-    <div className="profile-container" style={{ fontSize: `${fontSize}px` }}>
+    <div className="profile-page">
+    <Header  />
+    <div className="profile-container">
       <h2>Profile</h2>
       <div className="profile-section">
-        <div className="profile-pic">
-          <img src={profilePic || '/default-avatar.png'} alt="Profile" />
-          <input type="file" onChange={handleProfilePicChange} />
-        </div>
+        
+      <div className="profile-pic">
+      <div className="image-wrapper">
+       {profilePic ? (
+       <img
+        src={profilePic}
+        alt="Profile"
+        />
+       ) : (
+       <FaUserCircle size={130} color="#ccc" />
+       )}
+    
+       <label htmlFor="file-upload" className="edit-icon">
+       <FaEdit />
+       </label>
+    
+      <input
+      id="file-upload"
+      type="file"
+      onChange={handleProfilePicChange}
+      accept="image/*"
+      />
+            </div>
+      </div>
+  
         <div className="user-info">
           <p><strong>Name:</strong> {user.name}</p>
           <p><strong>Email:</strong> {user.email}</p>
         </div>
       </div>
-      <div className="preferences-section">
-        <h3>Preferences</h3>
-        <div className="preference-field">
-          <label htmlFor="defaultSourceLang">Default Source Language:</label>
-          <select 
-            id="defaultSourceLang" 
-            value={defaultSourceLang} 
-            onChange={(e) => setDefaultSourceLang(e.target.value)}
-          >
-            <option value="English">English</option>
-            <option value="Spanish">Spanish</option>
-            <option value="French">French</option>
-          </select>
-        </div>
-        <div className="preference-field">
-          <label htmlFor="defaultTargetLang">Default Target Language:</label>
-          <select 
-            id="defaultTargetLang" 
-            value={defaultTargetLang} 
-            onChange={(e) => setDefaultTargetLang(e.target.value)}
-          >
-            <option value="English">English</option>
-            <option value="Spanish">Spanish</option>
-            <option value="French">French</option>
-          </select>
-        </div>
-        <div className="preference-field">
-          <label>Theme:</label>
-          <div className="theme-toggle">
-            <label>
-              <input 
-                type="radio" 
-                name="theme" 
-                value="light" 
-                checked={theme === 'light'} 
-                onChange={() => setTheme('light')}
-              /> Light
-            </label>
-            <label>
-              <input 
-                type="radio" 
-                name="theme" 
-                value="dark" 
-                checked={theme === 'dark'} 
-                onChange={() => setTheme('dark')}
-              /> Dark
-            </label>
-          </div>
-        </div>
-        <div className="preference-field">
-          <label htmlFor="fontSize">Font Size:</label>
-          <input 
-            type="range" 
-            id="fontSize" 
-            min="12" 
-            max="24" 
-            value={fontSize} 
-            onChange={(e) => setFontSize(e.target.value)}
-          />
-        </div>
-      </div>
+  
       <div className="account-management">
-        <button onClick={handleChangePassword} className="change-password-btn">Change Password</button>
-        <button onClick={handleLogout} className="logout-btn">Logout</button>
+        <button onClick={handleChangePassword} className="change-password-btn">
+          Change Password
+        </button>
+        <button onClick={handleLogout} className="logout-btn">
+          Logout
+        </button>
       </div>
     </div>
+  </div>
   );
 };
 

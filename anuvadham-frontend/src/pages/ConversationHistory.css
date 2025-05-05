@@ -1,65 +1,192 @@
+/* Resetting box model and ensuring elements fit within container */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  overflow-y: auto;   /* Allow vertical scrolling if needed */
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+.conversation-history-page {
+  width: 100%;
+  background-color: #f2f5f9;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow-x: hidden; /* Prevent horizontal overflow */
+}
+
 .history-container {
-    padding: 20px;
-    max-width: 900px;
-    margin: 0 auto;
-    font-family: Arial, sans-serif;
+  max-width: 1100px;
+  margin: 0 auto;
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  max-height: 100vh;  /* Prevent container from exceeding viewport height */
+  overflow-y: auto;   /* Allow vertical scrolling if content exceeds */
+}
+
+/* Header */
+.history-container h2 {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+/* Filter section */
+.filter-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.filter-section input,
+.filter-section .css-13cymwt-control {
+  padding: 0.6rem;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.filter-section button {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 0.7rem;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.filter-section button:hover {
+  background-color: #218838;
+}
+
+/* History list */
+.history-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Card styles */
+.history-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1.5rem;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.2s;
+}
+
+.history-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.card-content {
+  margin-bottom: 1rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.conversation-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.timestamp {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.card-content h3 {
+  margin: 0.6rem 0;
+  color: #444;
+}
+
+.card-content p {
+  margin: 0.3rem 0;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+/* Actions */
+.card-actions {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: flex-end;
+}
+
+.card-actions button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #444;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.card-actions button:hover {
+  transform: scale(1.2);
+  color: #000;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: #888;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #aaa;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .history-container {
+    padding: 1rem;
   }
-  
-  .history-container h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  
-  .filter-section {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-  
-  .filter-section input,
-  .filter-section select {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  
-  .history-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  
   .history-card {
-    display: flex;
-    justify-content: space-between;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 15px;
-    align-items: center;
+    margin: 0 0.5rem;
   }
-  
-  .card-content {
-    flex: 1;
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
   }
-  
-  .card-content div {
-    margin-bottom: 8px;
+
+  .card-actions {
+    justify-content: space-around;
   }
-  
-  .card-actions button {
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    margin-left: 10px;
-    cursor: pointer;
-    transition: transform 0.2s ease;
+
+  .conversation-name {
+    font-size: 1rem;
   }
-  
-  .card-actions button:hover {
-    transform: scale(1.1);
-  }
-  
+}

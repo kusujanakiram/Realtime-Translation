@@ -12,17 +12,35 @@ const RegisterPage = () => {
   // All fields must be filled and passwords must match
   const isValid = name && email && password && confirmPassword && (password === confirmPassword);
 
-  const handleSubmit = (e) => {
+  
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       alert("Passwords do not match.");
       return;
     }
-    // Implement registration logic here
-    // On successful registration, redirect to login page
-    navigate('/login');
+  
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        alert(data.message || 'Registration failed');
+        return;
+      }
+  
+      alert('Registration successful');
+      navigate('/');
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
   };
-
+  
   return (
     <div className="register-container">
       <h2>Register</h2>

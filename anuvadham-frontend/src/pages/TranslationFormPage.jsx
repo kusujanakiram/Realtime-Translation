@@ -64,7 +64,11 @@ const TranslationFormPage = () => {
   return (
     <div className="translation-form-page">
       {/* HEADER */}
-      <header className="translation-header">Real-Time Translator</header>
+      <header className="header">
+        <div className="logo">
+          <img src="images\AnuvadhamLogo.png" alt="Logo" />
+          <span>Anuvadham</span>
+        </div></header>
 
       {/* MAIN FORM CONTENT */}
       <main className="translation-form-container">
@@ -155,10 +159,7 @@ const TranslationFormPage = () => {
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="translation-footer">
-        © 2025 Real-Time Translator. All rights reserved.
-      </footer>
+     
     </div>
   );
 };

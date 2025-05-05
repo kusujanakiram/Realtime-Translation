@@ -560,38 +560,70 @@ function downloadBlob(blob, filename) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-const handleDownloadAll = () => {
-  // Download Merged Full Audio (input + output)
-  console.log("🔹 Merged Audio Blob:", mergedAudioRef.current.size, "bytes");
+const handleExit = async () => {
+  try {
+    const formData = new FormData();
+    formData.append('conversationName', settings.conversationName);
+    formData.append('purpose', settings.purpose);
+
+    formData.append('person1', JSON.stringify({
+      language: languageNameMap.get(settings?.language1),
+      inputType: settings.inputMethod1
+    }));
+    formData.append('person2', JSON.stringify({
+      language: languageNameMap.get(settings?.language2) ,
+      inputType: settings.inputMethod2
+    }));
+
+    formData.append('conversationText', mergedText.current);
+    formData.append('audio', new File([mergedAudioRef.current], 'conversation.wav', { type: 'audio/wav' }));
+
+    const res = await axios.post('http://localhost:3000/api/conversations', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    console.log("✅ Saved to DB:", res.data);
+    alert("Conversation saved!");
+  } catch (err) {
+    console.error("❌ Error saving:", err);
+    alert("Failed to save conversation.");
+  }
+
+  // 🚀 Redirect
+  navigate("/home");
+}
+
+const handleDownloadAll = async () => {
+  // 🔉 Download Merged Audio
   if (mergedAudioRef.current) {
-    downloadBlob(mergedAudioRef.current, "conversation.wav");
     console.log("🔹 Merged Audio Blob:", mergedAudioRef.current.size, "bytes");
+    downloadBlob(mergedAudioRef.current, "conversation.wav");
   } else {
     console.log("⚠️ No merged audio available to download.");
   }
-  
-  console.log("merged text in handle download : ",mergedText)
-  
-  if (mergedText.current.trim() !== "") {
+
+  // 📝 Download Merged Text
+  if (mergedText.current && mergedText.current.trim() !== "") {
     const textBlob = new Blob([mergedText.current], { type: 'text/plain' });
-    console.log("🔹 Merged Text Blob:", textBlob.size, "bytes", textBlob);
+    console.log("🔹 Merged Text Blob:", textBlob.size, "bytes");
     downloadBlob(textBlob, "conversation.txt");
   } else {
     console.log("⚠️ No text content to download.");
   }
 
-  // Navigate to Home Page after Download
-  navigate("/");
+  await handleExit()
 };
-
 
   return (
     <div className="translation-page">
       {/* ---------- Header remains unchanged ---------- */}
-      <header className="translation-header">
-        <div className="header-left">
-          <span className="logo">🔵</span>
-          <h2>Anuvadham</h2>
+      <header className="header">
+        <div className="logo">
+          <img src="images\AnuvadhamLogo.png" alt="Logo" />
+          <span>Anuvadham</span>
         </div>
         <button className="exit-btn" onClick={() => setShowExit(!showExit)}>
           <FaArrowLeft />
@@ -637,24 +669,40 @@ const handleDownloadAll = () => {
   {/* ========== Box 2: Voice Input (Both Users Choose Voice) ========== */}
   {settings?.inputMethod1 === "voice" && settings?.inputMethod2 === "voice" && (
     <div className="box voice-box">
-      <h2>Voice Input</h2>
-      <div className="language-selector">
-      <label>Select Language:</label>
-      <select value={lang} onChange={(e) => setLang(e.target.value)}>
-        <option value={settings?.language1 || "en-IN"}>{languageNameMap.get(settings?.language1) || "English"}</option>
-        <option value={settings?.language2 || "hi-IN"}>{languageNameMap.get(settings?.language2) || "Hindi"}</option>
-      </select>
+    <h2>Voice</h2>
+    <div className="language-selector">
+    <label>Select Language: </label>
+    <select value={lang} onChange={(e) => setLang(e.target.value)}>
+      <option value={settings?.language1 || "en-IN"}>{languageNameMap.get(settings?.language1) || "English"}</option>
+      <option value={settings?.language2 || "hi-IN"}>{languageNameMap.get(settings?.language2) || "Hindi"}</option>
+    </select>
+  </div>
+  <div className="waveform-circle">
+{!isListening ? (
+  <div className="waveform-placeholder">
+  <div className="speak-text">
+    <div className="mic-icon"><FaMicrophone /></div> 
+    <div>
+      Let us talk 
+      <span className="dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
     </div>
-    <div className="waveform-circle">
-    <div ref={waveformRef} className="waveform"></div>
-        <button
-       className={`mic-btn ${isListening ? "recording" : ""}`}
-       onClick={handleSpeechInput}>
-       {isListening ? <FaStop /> : <FaMicrophone />}
-       </button>
+  </div>
+</div>
+) : (
+  <canvas ref={waveformRef} className="waveform-canvas"></canvas>
+)}
+</div>
+    <button
+     className={`mic-btn ${isListening ? "recording" : ""}`}
+     onClick={handleSpeechInput}>
+     {isListening ? <FaStop /> : <FaMicrophone />}
+     </button>
+  </div>
 
-      </div>
-    </div>
   )}
 
   {/* ========== Box 3: Mixed Input (Either User Chooses Text or Voice) ========== */}
@@ -776,6 +824,8 @@ const handleDownloadAll = () => {
           🔄 Repeat
         </button>
       </motion.div>
+      <div className="mobile-bottom-spacer"></div>
+
   
       {/* ---------- Modal and Footer remain unchanged ---------- */}
       {showModal && (
@@ -786,7 +836,7 @@ const handleDownloadAll = () => {
               <button onClick={handleDownloadAll} className="modal-btn download">
                 Download
               </button>
-              <button onClick={() => navigate("/")} className="modal-btn cancel">
+              <button onClick={handleExit} className="modal-btn cancel">
                 Cancel
               </button>
             </div>

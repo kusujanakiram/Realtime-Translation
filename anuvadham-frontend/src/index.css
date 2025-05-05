@@ -1,29 +1,44 @@
-/* index.css */
-
-/* CSS Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+:root {
+  --primary-color: #0b69c2;
+  --secondary-color: #ffffff;
+  --text-color: #333333;
+  --background-color: #f4f7fc;
+  --border-color: #0b69c2;
+  --footer-color: #0a5799;
+  --transition-speed: 0.3s;
 }
 
-/* Global Typography */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
 body {
   font-family: 'Helvetica Neue', Arial, sans-serif;
   background-color: #f5f5f5;
   color: #333;
-  line-height: 1.6;
 }
 
-/* Global link styling */
 a {
   text-decoration: none;
   color: inherit;
 }
 
-/* Utility Classes */
-.container {
-  width: 90%;
-  max-width: 1200px;
-  margin: 0 auto;
+::-webkit-scrollbar {
+  display: none;
 }

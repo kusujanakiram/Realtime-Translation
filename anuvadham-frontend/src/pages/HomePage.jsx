@@ -1,68 +1,97 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Header from "../components/Header";
+import { FaComments } from "react-icons/fa";
+
+import axios from "axios";
 import "./HomePage.css";
 
 const HomePage = () => {
+  const token = localStorage.getItem('token');
   const navigate = useNavigate();
+  const [recentTranslations, setRecentTranslations] = useState([]);
 
-  // Sample recent translations (replace with dynamic data later)
-  const recentTranslations = [
-    { id: 1, source: "Hello", target: "Hola", timestamp: "2 mins ago" },
-    { id: 2, source: "How are you?", target: "¿Cómo estás?", timestamp: "10 mins ago" },
-    { id: 3, source: "Goodbye", target: "Adiós", timestamp: "30 mins ago" },
-  ];
+   useEffect(() => {
+      const token = localStorage.getItem('token');
+      if (!token) navigate('/');
+    }, []);
+  
+  useEffect(() => {
+    const fetchRecentConversations = async () => {
+      try {
+        const res = await axios.get("http://localhost:3000/api/conversations",{ headers: {
+          Authorization: `Bearer ${token}`
+        }});
+        const sorted = res.data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+        setRecentTranslations(sorted.slice(0, 3));
+      } catch (err) {
+        console.error("Error fetching recent conversations:", err);
+      }
+    };
+
+    fetchRecentConversations();
+  }, []);
+
+  const getRelativeTime = (date) => {
+    const now = new Date();
+    const past = new Date(date);
+    const secondsDiff = Math.floor((now - past) / 1000);
+
+    const intervals = [
+      { label: "year", seconds: 31536000 },
+      { label: "month", seconds: 2592000 },
+      { label: "day", seconds: 86400 },
+      { label: "hour", seconds: 3600 },
+      { label: "minute", seconds: 60 },
+      { label: "second", seconds: 1 },
+    ];
+
+    for (const interval of intervals) {
+      const count = Math.floor(secondsDiff / interval.seconds);
+      if (count >= 1) {
+        return `${count} ${interval.label}${count > 1 ? "s" : ""} ago`;
+      }
+    }
+    return "just now";
+  };
 
   return (
     <div className="home-container">
-      {/* Sticky Header */}
-      <header className="header">
-        <div className="logo">
-          <img src="/path-to-logo.png" alt="Logo" />
-          <span className="web-name">Anuvadham</span>
-        </div>
-        <nav className="nav-links">
-          <a href="/translate">Translate</a>
-          <a href="/history">History</a>
-          <a href="/login">Login</a>
-          <a href="/register">Register</a>
-          <div className="profile-section">
-            <img
-              src="/path-to-profile.png"
-              alt="Profile"
-              className="profile-icon"
-            />
-          </div>
-        </nav>
-      </header>
-
-      {/* Main Content */}
+      <Header />
       <main className="main-content">
-        {/* Conversation Box */}
+        {/* Start Conversation Box */}
         <div className="feature-box" onClick={() => navigate("/translateform")}>
-          <span className="feature-text">
-            Start Conversation
-          </span>
+          <span className="feature-text">Start Conversation</span>
         </div>
 
         {/* Recent Translations */}
         <section className="recent-translations">
           <h2>Recent Translations</h2>
           <div className="translation-cards">
-            {recentTranslations.map((item) => (
-              <div key={item.id} className="translation-card">
-                <div className="translation-text">
-                  <span className="source">{item.source}</span>
-                  <span className="arrow">→</span>
-                  <span className="target">{item.target}</span>
+            {recentTranslations.length ? (
+              recentTranslations.map((item) => (
+                <div key={item._id} className="translation-card">
+                  <h4 className="conversation-name">{item.conversationName || "Untitled"}</h4>
+                  <div className="translation-meta">
+                    <span>{item.person1?.language}</span>
+                    <span>⇌</span>
+                    <span>{item.person2?.language}</span>
+                  </div>
+                  <p className="timestamp">{getRelativeTime(item.startTime)}</p>
                 </div>
-                <span className="timestamp">{item.timestamp}</span>
+              ))
+            ) : (
+              <div className="empty-state">
+              <FaComments className="empty-icon" />
+              <h3>No Conversations Yet!</h3>
+              <p>Start a conversation to see it here.</p>
               </div>
-            ))}
+
+            )}
           </div>
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="footer">
         <a href="/privacy">Privacy Policy</a>
         <a href="/support">Support</a>
