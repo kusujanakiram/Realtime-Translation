@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 3000;
 
 const apiKey = process.env.API_KEY;
 const MONGO = process.env.MONGO_URI;
@@ -144,6 +144,6 @@ app.post('/api/synthesize', async (req, res) => {
 });
 
 // ✅ Start Express Server
-app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
