@@ -144,6 +144,6 @@ app.post('/api/synthesize', async (req, res) => {
 });
 
 // ✅ Start Express Server
-app.listen(port, () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
