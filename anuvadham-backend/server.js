@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // ✅ CORS setup
 app.use(cors({
-  origin: 'https://anuvadham.vercel.app/',
+  origin: 'https://anuvadham.vercel.app',
   credentials: true
 }));
 
