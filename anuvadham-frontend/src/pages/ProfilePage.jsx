@@ -5,19 +5,25 @@ import { FaEdit, FaUserCircle } from 'react-icons/fa';
 import axios from 'axios';
 
 const ProfilePage = () => {
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) navigate('/');
+  }, []);
+
   const [profilePic, setProfilePic] = useState(null);
   const [user, setUser] = useState({ name: '', email: '' });
-
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+  
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:3000/api/auth/me', {
+        const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setUser({ name: res.data.name, email: res.data.email });
         if (res.data.profilePic) {
-          setProfilePic(`http://localhost:3000${res.data.profilePic}`);
+          setProfilePic(`${API_BASE_URL}${res.data.profilePic}`);
         }
       } catch (error) {
         console.error('Failed to load user info:', error);
@@ -25,7 +31,8 @@ const ProfilePage = () => {
     };
     fetchUser();
   }, []);
-
+  
+  
   const handleProfilePicChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -35,13 +42,13 @@ const ProfilePage = () => {
 
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.post('http://localhost:3000/api/auth/upload-profile-pic', formData, {
+        const res = await axios.post(`${API_BASE_URL}/api/auth/upload-profile-pic`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}`
           }
         });
-        setProfilePic(`http://localhost:3000${res.data.profilePic}?t=${Date.now()}`);
+        setProfilePic(`${API_BASE_URL}${res.data.profilePic}?t=${Date.now()}`);
       } catch (err) {
         console.error('Error uploading profile picture:', err);
       }

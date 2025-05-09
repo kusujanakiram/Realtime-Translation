@@ -15,7 +15,11 @@ const TranslationFormPage = () => {
   const [languages, setLanguages] = useState([]);
 
   const api_key = import.meta.env.VITE_RAPIDAPI_KEY;
-
+  useEffect(() => {
+      const token = localStorage.getItem('token');
+      if (!token) navigate('/');
+    }, []);
+    
   useEffect(() => {
     const fetchLanguages = async () => {
       if (!api_key) {

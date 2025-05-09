@@ -33,6 +33,12 @@ const TranslationPage = () => {
   const allAudioBlobsRef = useRef([]);
   let mergedAudioRef = useRef(null);
   let mergedText = useRef("");
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+
+  useEffect(() => {
+      const token = localStorage.getItem('token');
+      if (!token) navigate('/');
+    }, []);
 
 const appendToMergedText = (text, type) => {
   if (type == "original") {
@@ -311,7 +317,7 @@ const handleSendText = async () => {
         console.log("Lang test for testing",targetLang);
         const ttsOptions = {
           method: "POST",
-          url: "http://localhost:3000/api/synthesize",
+          url: `${API_BASE_URL}/api/synthesize`,
           headers: {
               "Content-Type": "application/json"
           },
@@ -475,7 +481,7 @@ const transcribeAudio = async (audioContent) => {
   console.log("📤 Sending audio to API...");
 
   try {
-    const response = await fetch("http://localhost:3000/api/speech-to-text", {
+    const response = await fetch(`${API_BASE_URL}/api/speech-to-text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ audioContent, languageCode, alternativeLanguageCodes }),
@@ -518,7 +524,7 @@ const synthesizeSpeech = async (text, languageCode) => {
   try {
     console.log("🎧 Converting to Speech...");
 
-    const response = await axios.post("http://localhost:3000/api/synthesize", {
+    const response = await axios.post(`${API_BASE_URL}/api/synthesize`, {
       text,
       languageCode,
     }, {
@@ -578,7 +584,7 @@ const handleExit = async () => {
     formData.append('conversationText', mergedText.current);
     formData.append('audio', new File([mergedAudioRef.current], 'conversation.wav', { type: 'audio/wav' }));
 
-    const res = await axios.post('http://localhost:3000/api/conversations', formData, {
+    const res = await axios.post(`${API_BASE_URL}/api/conversations`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         'Authorization': `Bearer ${localStorage.getItem('token')}`

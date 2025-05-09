@@ -8,6 +8,7 @@ const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
   // All fields must be filled and passwords must match
   const isValid = name && email && password && confirmPassword && (password === confirmPassword);
@@ -21,7 +22,7 @@ const RegisterPage = () => {
     }
   
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),

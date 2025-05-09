@@ -16,6 +16,7 @@ const ConversationHistory = () => {
   const [languages, setLanguages] = useState([]);
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -52,7 +53,7 @@ const ConversationHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/api/conversations', {
+        const res = await axios.get(`${API_BASE_URL}/api/conversations`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -108,7 +109,7 @@ const ConversationHistory = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this conversation?')) {
       try {
-        await axios.delete(`http://localhost:3000/api/conversations/${id}`, {
+        await axios.delete(`${API_BASE_URL}/api/conversations/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -145,7 +146,7 @@ const ConversationHistory = () => {
       
       // Export conversation audio (if available)
       if (item.conversationAudio) {
-        const audioResponse = await fetch(`http://localhost:3000${item.conversationAudio}`);
+        const audioResponse = await fetch(`${API_BASE_URL}${item.conversationAudio}`);
         const audioBlob = await audioResponse.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
         const audioLink = document.createElement('a');
@@ -165,7 +166,7 @@ const ConversationHistory = () => {
 
   const handlePlayAudio = (audioUrl) => {
     if (audioUrl) {
-      new Audio(`http://localhost:3000${audioUrl}`).play();
+      new Audio(`${API_BASE_URL}${audioUrl}`).play();
     } else {
       alert('No audio file available for this conversation.');
     }

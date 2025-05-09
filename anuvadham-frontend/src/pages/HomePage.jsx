@@ -7,6 +7,7 @@ import axios from "axios";
 import "./HomePage.css";
 
 const HomePage = () => {
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
   const [recentTranslations, setRecentTranslations] = useState([]);
@@ -19,7 +20,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchRecentConversations = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/conversations",{ headers: {
+        const res = await axios.get(`${API_BASE_URL}/api/conversations`,{ headers: {
           Authorization: `Bearer ${token}`
         }});
         const sorted = res.data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
