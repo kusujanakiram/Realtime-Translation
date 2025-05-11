@@ -1,6 +1,6 @@
 const Conversation = require('../models/ConversationModel');
 const User = require('../models/UserModel');
-
+const cloudinary = require('../config/cloudinary');
 // POST: Save a new conversation
 const createConversation = async (req, res) => {
   try {
@@ -12,7 +12,8 @@ const createConversation = async (req, res) => {
       conversationText
     } = req.body;
 
-    const conversationAudio = req.file ? `/uploads/${req.file.filename}` : '';
+    // ✅ Cloudinary file URL
+    const conversationAudio = req.file?.path || ''; // Cloudinary URL
 
     let parsedPerson1, parsedPerson2;
     try {
@@ -28,7 +29,7 @@ const createConversation = async (req, res) => {
       person1: parsedPerson1,
       person2: parsedPerson2,
       conversationText,
-      conversationAudio,
+      conversationAudio, // ✅ now stores Cloudinary URL
       user: req.user._id
     });
 
@@ -43,6 +44,7 @@ const createConversation = async (req, res) => {
     res.status(500).json({ error: 'Failed to save conversation', details: err.message });
   }
 };
+
 
 // GET: All conversations
 const getAllConversations = async (req, res) => {
@@ -73,8 +75,43 @@ const getConversationById = async (req, res) => {
   }
 };
 
+
+
+const deleteConversation = async (req, res) => {
+  try {
+    const conversation = await Conversation.findById(req.params.id);
+
+    if (!conversation) return res.status(404).json({ message: 'Conversation not found' });
+
+    if (conversation.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Extract public_id from Cloudinary URL
+    const publicId = conversation.conversationAudio?.split('/').pop().split('.')[0];
+
+    if (publicId) {
+      await cloudinary.uploader.destroy(`anuvadham/${publicId}`, {
+        resource_type: 'video', // because it's audio
+      });
+    }
+
+    await Conversation.findByIdAndDelete(req.params.id);
+
+    // Remove from user's conversation list
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { conversations: req.params.id }
+    });
+
+    res.json({ message: 'Conversation deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete conversation', details: err.message });
+  }
+};
+
 module.exports = {
   createConversation,
   getAllConversations,
   getConversationById,
+  deleteConversation,
 };

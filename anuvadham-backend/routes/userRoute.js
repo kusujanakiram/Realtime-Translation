@@ -2,10 +2,13 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/UserModel');
 const jwt = require('jsonwebtoken');
-const upload = require('../middleware/uploadMiddleware');
-const path = require('path');
 const fs = require('fs');
-const protect = require('../middleware/auth');
+const { profilePicUploader } = require('../middleware/cloudinaryUploader');
+const protect  = require('../middleware/auth');
+const cloudinary = require('../config/cloudinary');
+const path = require('path');
+
+
 
 // 🔐 Register
 router.post('/register', async (req, res) => {
@@ -64,30 +67,32 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/upload-profile-pic', protect, upload.single('profilePic'), async (req, res) => {
+router.post('/upload-profile-pic', protect, profilePicUploader.single('profilePic'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const profilePicPath = `/uploads/profilePics/${req.file.filename}`;
+    // Optional: delete old Cloudinary profile pic if it was stored there
+    if (user.profilePic && user.profilePic.includes('res.cloudinary.com')) {
+      const publicId = user.profilePic
+        .split('/')
+        .slice(-1)[0]
+        .split('.')[0]; // Extract filename without extension
 
-    // Delete old profile pic
-    if (user.profilePic && user.profilePic.startsWith('/uploads/')) {
-      const oldPath = path.join(__dirname, '..', user.profilePic);
-      fs.unlink(oldPath, (err) => {
-        if (err) console.log('Failed to delete old pic:', err);
+      await cloudinary.uploader.destroy(`anuvadham-profile-pics/${publicId}`, {
+        resource_type: 'image',
       });
     }
 
-    user.profilePic = profilePicPath;
+    user.profilePic = req.file.path; // Cloudinary URL
     await user.save();
 
-    res.status(200).json({ message: 'Profile picture updated', profilePic: profilePicPath });
+    res.status(200).json({ message: 'Profile picture updated', profilePic: req.file.path });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to upload', error });
+    console.error('Upload error:', error);
+    res.status(500).json({ message: 'Failed to upload', error: error.message });
   }
 });
-
 router.put('/change-password',protect, async (req, res) => {
   const { newPassword } = req.body;
   if (!newPassword) return res.status(400).json({ message: 'New password is required' });
