@@ -789,47 +789,48 @@ const handleDownloadAll = async () => {
 
   
       {/* ---------- Live Captions & Repeat Button ---------- */}
-      <motion.div
-        ref={liveCaptionsRef}
-        className="live-captions"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+     <motion.div
+  ref={liveCaptionsRef}
+  className="live-captions"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 0.5 }}
+>
+  <motion.div
+    className="live-captions-text"
+    initial="hidden"
+    animate="visible"
+    variants={{
+      hidden: { opacity: 1 },
+      visible: {
+        transition: {
+          staggerChildren: 0.03,
+        },
+      },
+    }}
+  >
+    {(liveCaptions || "🎤 Waiting for input...").split("").map((char, i) => (
+      <motion.span
+        key={i}
+        variants={{
+          hidden: { opacity: 0, y: 10 },
+          visible: { opacity: 1, y: 0 },
+        }}
       >
-        <motion.div
-          className="live-captions-text"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 1 },
-            visible: {
-              transition: {
-                staggerChildren: 0.03,
-              },
-            },
-          }}
-        >
-          {liveCaptions.split("").map((char, i) => (
-            <motion.span
-              key={i}
-              variants={{
-                hidden: { opacity: 0, y: 10 },
-                visible: { opacity: 1, y: 0 },
-              }}
-            >
-              {char}
-            </motion.span>
-          ))}
-        </motion.div>
-        
-        <button
-          onClick={() => translatedAudio && new Audio(translatedAudio).play()}
-          disabled={!translatedAudio}
-          className="repeat-btn"
-        >
-          🔄 Repeat
-        </button>
-      </motion.div>
+        {char}
+      </motion.span>
+    ))}
+  </motion.div>
+
+  <button
+    onClick={() => translatedAudio && new Audio(translatedAudio).play()}
+    disabled={!translatedAudio}
+    className="repeat-btn"
+  >
+    🔄 Repeat
+  </button>
+</motion.div>
+
       <div className="mobile-bottom-spacer"></div>
 
   

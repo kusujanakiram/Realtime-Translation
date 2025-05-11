@@ -580,3 +580,31 @@ button:hover {
   }
 
 }
+.custom-alert {
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff8f8;
+    border: 1px solid #ff4d4d;
+    color: #b00000;
+    padding: 20px 30px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    z-index: 9999;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.custom-alert button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.custom-alert button:hover {
+    background-color: #cc0000;
+}

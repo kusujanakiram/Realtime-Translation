@@ -190,3 +190,85 @@ html, body {
     font-size: 1rem;
   }
 }
+/* ... existing styles ... */
+
+/* Additional Media Queries for Enhanced Responsiveness */
+
+/* Extra small screens (≤ 400px) */
+@media (max-width: 400px) {
+  .history-container {
+    padding: 0.8rem;
+  }
+
+  .filter-section {
+    grid-template-columns: 1fr; /* Stack filters vertically */
+  }
+
+  .history-card {
+    padding: 1rem;
+  }
+
+  .card-content h3 {
+    font-size: 1rem;
+  }
+
+  .card-content p {
+    font-size: 0.9rem;
+  }
+
+  .conversation-name {
+    font-size: 0.95rem;
+  }
+
+  .timestamp {
+    font-size: 0.75rem;
+  }
+
+  .card-actions button {
+    font-size: 1rem;
+  }
+}
+
+/* Medium to large screens (≥ 1000px) */
+@media (min-width: 1000px) {
+  .filter-section {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .history-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-content {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .card-actions {
+    flex-shrink: 0;
+  }
+}
+
+/* Ultra-wide displays (≥ 1440px) */
+@media (min-width: 1440px) {
+  .history-container {
+    max-width: 1200px;
+    padding: 2.5rem;
+  }
+
+  .filter-section input,
+  .filter-section .css-13cymwt-control,
+  .filter-section button {
+    font-size: 1rem;
+  }
+
+  .conversation-name {
+    font-size: 1.4rem;
+  }
+
+  .timestamp {
+    font-size: 1rem;
+  }
+}

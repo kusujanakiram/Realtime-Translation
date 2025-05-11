@@ -7,7 +7,9 @@ html, body {
   justify-content: center;
   align-items: center;
   background-color: #f5f5f5;
+  font-family: Arial, sans-serif;
 }
+
 #root {
   height: 100vh;
   width: 100vw;
@@ -20,52 +22,43 @@ html, body {
   width: 100%;
   max-width: 400px;
   padding: 2rem;
-  background: white;
+  background: #fff;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  font-family: Arial, sans-serif;
 }
-.login-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 20px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    border-radius: 8px;
-    background: #fff;
-    font-family: Arial, sans-serif;
-    align-items: center;
-  }
-  
-  .login-container h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  
-  /* Form Styles */
-  .login-form {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .form-field {
-    margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .form-field label {
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #555;
-  }
-  
-  .form-field input {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  
-  /* Parent container for password input and toggle */
+
+.login-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Form Styles */
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-field {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-field label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.form-field input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Password Input with Toggle */
 .password-input {
   position: relative;
   width: 100%;
@@ -73,17 +66,15 @@ html, body {
   align-items: center;
 }
 
-/* The actual input takes full width */
 .password-input input {
   width: 100%;
   padding: 10px;
-  padding-right: 70px; /* Add space for toggle */
+  padding-right: 70px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 1rem;
 }
 
-/* Toggle button aligned absolutely to the right */
 .toggle-password {
   position: absolute;
   right: 10px;
@@ -101,56 +92,105 @@ html, body {
   text-overflow: ellipsis;
 }
 
-  
-  
-  /* Button Styles */
-  .login-btn {
-    padding: 12px;
-    background: #28a745;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: background 0.3s ease;
+/* Button Styles */
+.login-btn {
+  padding: 12px;
+  background: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.3s ease;
+}
+
+.login-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.google-btn {
+  margin-top: 15px;
+  padding: 12px;
+  background: #db4437;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.3s ease;
+}
+
+.google-btn:hover {
+  background: #c33d2e;
+}
+
+/* Links */
+.additional-links {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.additional-links a {
+  color: #007BFF;
+  text-decoration: none;
+}
+
+.additional-links a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 768px) {
+  .login-container {
+    padding: 1.5rem;
+    margin: 20px;
+    box-shadow: none;
+    border-radius: 6px;
   }
-  
-  .login-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+
+  .login-container h2 {
+    font-size: 1.5rem;
   }
-  
+
+  .form-field input,
+  .password-input input {
+    padding: 8px;
+    font-size: 0.95rem;
+  }
+
+  .toggle-password {
+    font-size: 0.8rem;
+  }
+
+  .login-btn,
   .google-btn {
-    margin-top: 15px;
-    padding: 12px;
-    background: #db4437;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    width: 100%;
-    transition: background 0.3s ease;
+    padding: 10px;
+    font-size: 0.95rem;
   }
-  
-  .google-btn:hover {
-    background: #c33d2e;
-  }
-  
-  /* Additional Links */
+
   .additional-links {
-    margin-top: 20px;
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
   }
-  
-  .additional-links a {
-    color: #007BFF;
-    text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  html, body, #root {
+    padding: 0 10px;
   }
-  
-  .additional-links a:hover {
-    text-decoration: underline;
+
+  .login-container {
+    padding: 1rem;
   }
-  
-  
+
+  .login-container h2 {
+    font-size: 1.3rem;
+  }
+
+  .toggle-password {
+    right: 8px;
+    font-size: 0.75rem;
+  }
+}

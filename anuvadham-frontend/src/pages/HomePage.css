@@ -219,3 +219,69 @@ body {
   font-size: 16px;
   color: #999;
 }
+/* RESPONSIVE ADJUSTMENTS FOR SMALL SCREENS */
+@media (max-width: 600px) {
+  .main-content {
+    padding: 20px 10px;
+    margin-top: 20%;
+  }
+
+  .feature-box {
+    width: 90%;
+    height: 160px;
+    margin-bottom: 30px;
+  }
+
+  .feature-text {
+    font-size: 1.2rem;
+    padding: 12px 24px;
+    text-align: center;
+  }
+
+  .recent-translations {
+    padding: 0 10px;
+  }
+
+  .recent-translations h2 {
+    font-size: 1.2rem;
+  }
+
+  .translation-cards {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .translation-card {
+    padding: 15px;
+  }
+
+  .translation-text {
+    font-size: 0.75rem;
+  }
+
+  .timestamp {
+    font-size: 0.6rem;
+  }
+
+  .footer {
+    font-size: 0.85rem;
+    padding: 12px 10px;
+    flex-wrap: wrap;
+  }
+
+  .footer a {
+    margin: 4px 8px;
+  }
+
+  .empty-state h3 {
+    font-size: 20px;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+  }
+
+  .empty-icon {
+    font-size: 70px;
+  }
+}

@@ -26,7 +26,7 @@ export default function Header() {
     <>
       <header className="header">
         <div className="logo">
-          <img src="images\AnuvadhamLogo.png" alt="Logo" />
+          <img src="https://github.com/kusujanakiram/Realtime-Translation/blob/main/anuvadham-frontend/images/AnuvadhamLogo.png?raw=true" alt="Logo" />
           <span>Anuvadham</span>
         </div>
 

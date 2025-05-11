@@ -189,3 +189,105 @@ body, html {
   cursor: pointer;
   font-weight: 500;
 }
+@media (max-width: 1024px) {
+  .form-card {
+    padding: 30px;
+  }
+
+  .form-title {
+    font-size: 24px;
+  }
+
+  .start-button {
+    font-size: 16px;
+    padding: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .translation-form-container {
+    margin-top: 30px;
+    padding: 10px;
+  }
+
+  .form-card {
+    padding: 20px;
+  }
+
+  .form-title {
+    font-size: 22px;
+  }
+
+  .language-section {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .language-group {
+    min-width: auto;
+    padding: 15px;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 10px;
+    font-size: 15px;
+  }
+
+  .language-group h2 {
+    font-size: 18px;
+  }
+
+  .input-method {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .start-button {
+    font-size: 16px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    height: auto;
+    padding: 10px;
+  }
+
+  .logo img {
+    height: 40px;
+    width: 40px;
+  }
+
+  .logo span {
+    font-size: 1.2rem;
+  }
+
+  .form-card {
+    padding: 15px;
+  }
+
+  .form-title {
+    font-size: 20px;
+  }
+
+  .form-group label {
+    font-size: 14px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .language-group select {
+    font-size: 14px;
+  }
+
+  .start-button {
+    font-size: 15px;
+    padding: 10px;
+  }
+}
