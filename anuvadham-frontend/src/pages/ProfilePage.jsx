@@ -74,6 +74,7 @@ const ProfilePage = () => {
   return (
     <div className="profile-page">
       <Header />
+      <div className="profile-content-wrapper">
       <div className="profile-container">
         <h2>Profile</h2>
         <div className="profile-section">
@@ -117,6 +118,7 @@ const ProfilePage = () => {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 };

@@ -60,12 +60,9 @@ const HomePage = () => {
     <div className="home-container">
       <Header />
       <main className="main-content">
-        {/* Start Conversation Box */}
         <div className="feature-box" onClick={() => navigate("/translateform")}>
           <span className="feature-text">Start Conversation</span>
         </div>
-
-        {/* Recent Translations */}
         <section className="recent-translations">
           <h2>Recent Translations</h2>
           <div className="translation-cards">

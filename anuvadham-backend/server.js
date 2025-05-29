@@ -11,23 +11,17 @@ const PORT = process.env.PORT || 3000;
 const apiKey = process.env.API_KEY;
 const MONGO = process.env.MONGO_URI;
 
-// ✅ Body parser must come first
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// ✅ CORS setup
 app.use(cors({
-  origin: 'https://anuvadham.vercel.app',
+  origin: 'http://localhost:5174',
   credentials: true
 }));
 
-
-
-// ✅ Routes
 const userRoutes = require('./routes/userRoute');
 const conversationRoutes = require('./routes/conversationRoutes');
 
-// ✅ DB connection
 mongoose.connect(MONGO)
   .then(() => console.log("MongoDB connected successfully!"))
   .catch((error) => console.log(error));
@@ -35,17 +29,14 @@ mongoose.connect(MONGO)
 app.use('/api/auth', userRoutes);
 app.use('/api/conversations', conversationRoutes);
 
-// ✅ Check API Key
 if (!apiKey) {
   console.error("❌ API Key is missing. Check your .env file!");
   process.exit(1);
 }
 
-// Default Language Codes
 const defaultSTTLanguage = "en-IN";
 const alternativeLanguages = ["hi-IN"];
 
-// Speech-to-Text API
 app.post("/api/speech-to-text", async (req, res) => {
   let { audioContent, languageCode, alternativeLanguageCodes } = req.body;
 
@@ -99,7 +90,6 @@ app.post("/api/speech-to-text", async (req, res) => {
   }
 });
 
-// Text-to-Speech API
 app.post('/api/synthesize', async (req, res) => {
   let { text, languageCode } = req.body;
 
@@ -127,9 +117,6 @@ app.post('/api/synthesize', async (req, res) => {
   }
 });
 
-
-
-// ✅ Start Express Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

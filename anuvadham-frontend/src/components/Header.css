@@ -1,22 +1,22 @@
-/* Header main styling */
 .header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: row;
+  justify-content:space-evenly;
+  align-content: center;
   background: var(--primary-color, #1a1a2e);
   color: var(--secondary-color, #fff);
-  padding: 0 20px;
+  padding: 0 10px !important;
   height: 4rem;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   position: relative;
   width: 100%;
   z-index: 10;
+  margin: 0 !important;
 }
 
-/* Logo section */
 .logo {
   display: flex;
-  align-items: center;
+
   gap: 10px;
 }
 
@@ -32,10 +32,8 @@
   color: var(--secondary-color, #fff);
 }
 
-/* Navigation links */
 .nav {
   display: flex;
-  align-items: center;
   gap: 20px;
 }
 
@@ -44,25 +42,27 @@
   text-decoration: none;
   font-weight: bold;
   transition: opacity 0.3s ease;
-  font-size: medium;
+  font-size: large;
+  justify-content: center;
+  align-self: center;
 }
 
 .nav-link:hover {
-  opacity: 0.8;
+  opacity: 1;
 }
 
-/* Hide nav links on small screens */
+
 @media (max-width: 768px) {
   .nav-link {
     display: none;
   }
 }
 
-/* Profile section */
 .profile {
   position: relative;
   cursor: pointer;
-  margin-top: 10px;
+  align-self: center;
+  margin-top: 5px;
 }
 
 .icon {
@@ -70,7 +70,6 @@
   color: var(--secondary-color, #fff);
 }
 
-/* Dropdown styling */
 .dropdown {
   position: absolute;
   top: 37px;
@@ -110,19 +109,7 @@
   background-color: #f0f0f0;
 }
 
-/* Ensure dropdown doesn't overflow on small screens */
-@media (max-width: 480px) {
-  .dropdown {
-    right: 10px;
-    width: 90vw;
-  }
 
-  .dropdown-arrow {
-    right: 25px;
-  }
-}
-
-/* Overlay when dropdown is open */
 .overlay {
   position: fixed;
   inset: 0;

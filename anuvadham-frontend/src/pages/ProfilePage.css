@@ -1,34 +1,18 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  height: 100%;
-  width: 100%;
-  overflow-x: hidden;
-}
-
-#root {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 .profile-page {
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #f3f4f6, #e0e7ff);
+  min-height: 100vh;
+  min-width: 100vw;
+  
 }
-
-.profile-container {
+.profile-content-wrapper{
+  display: flex;
+  justify-content: center;
+  align-items: center;
   flex: 1;
+}
+.profile-container {
   max-width: 800px;
   width: 95%;
   margin: 1rem auto;
@@ -39,8 +23,8 @@ html, body {
   display: flex;
   flex-direction: column;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  height: 60vh;
   overflow-y: auto;
+  
 }
 
 h2 {

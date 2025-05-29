@@ -1,9 +1,7 @@
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('../config/cloudinary'); // your cloudinary config
+const cloudinary = require('../config/cloudinary'); 
 
-
-// Cloudinary storage configuration for audio files
 const audioStorage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -14,17 +12,15 @@ const audioStorage = new CloudinaryStorage({
   },
 });
 
-// Cloudinary storage configuration for profile pictures
 const profilePicStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'anuvadham-profile-pics',  // Folder for profile pictures
+    folder: 'anuvadham-profile-pics',
     allowed_formats: ['jpg', 'jpeg', 'png', 'gif'],
-    public_id: (req, file) => `profile-pic-${Date.now()}`, // Ensure unique name
+    public_id: (req, file) => `profile-pic-${Date.now()}`, 
   },
 });
 
-// Create separate uploaders for different use cases
 const audioUploader = multer({ storage: audioStorage });
 const profilePicUploader = multer({ storage: profilePicStorage });
 

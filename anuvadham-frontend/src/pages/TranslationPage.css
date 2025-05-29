@@ -1,19 +1,3 @@
-/* General Styling */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-#root{
-  height: 100vh;
-  width: 100vw;
-  margin:0;
-  padding:0;
-}
-body, html {
-  height: 100%;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-
 .translation-page {
   height: 100vh;
   width: 100vw;
@@ -21,22 +5,21 @@ body, html {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   min-height: 100vh;
   background: #f0f0f0;
   position: relative;
 
 }
 .header {
-  width: 100%;
-  height: 8%;
+  width: 100vw;
+  height: 8vh;
   background: #2266aa;
   color: white;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  position: fixed;
-  padding: 10px 20px;
+  position: sticky;
   top: 0;
   left: 0;
   z-index: 10;
@@ -48,6 +31,7 @@ body, html {
   align-items: center;
   gap: 10px;
   padding-top:3px ;
+  padding-left: 10px;
 }
 
 .logo img {
@@ -61,18 +45,19 @@ body, html {
   font-weight: bold;
   color: var(--secondary-color, #fff);
 }
-/* Header */
 
 .exit-btn {
   background: #333;
   border: none;
-  padding: 7px 9px ;
+  padding: 8px 9px ;
   border-radius: 50%;
   cursor: pointer;
   transition: 0.3s;
-  margin-top: 108px;
+  margin-top: 115px;
   margin-bottom: 7px;
-  margin-right: -10px;
+  margin-right: 5px;
+  height: 40px;
+  width: 40px;
 }
 
 .exit-btn:hover {
@@ -102,7 +87,6 @@ body, html {
   transform: translateX(-5px);
 }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -120,6 +104,8 @@ body, html {
   padding: 20px;
   border-radius: 10px;
   text-align: center;
+  min-width: 300px;
+  margin: 0 20px;
 }
 
 .modal-buttons {
@@ -143,22 +129,18 @@ body, html {
   color: white;
 }
 
-/* Footer */
 
-
-/* New Translation Interface Container */
 .translation-container {
   display: flex;
-  flex-wrap: wrap; /* allows stacking on small screens */
+  flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
   width: 100%;
   max-width: 1200px;
-  margin-top: 80px; /* prevents overlap with fixed header */
+  margin-top: 80px;
   gap: 20px;
 }
 
-/* Box for Text or Voice Input */
 .box {
   background: #f9f9f9;
   border-radius: 12px;
@@ -176,11 +158,11 @@ body, html {
   color: #333;
 }
 
-/* Responsive Stacking on Small Screens */
 @media (max-width: 768px) {
   .translation-container {
     flex-direction: column;
     align-items: center;
+    margin-top: 0 !important;
   }
   .box {
     max-width: 90%;
@@ -194,11 +176,11 @@ body, html {
     padding: 20px;
     width: 100%;
     max-width: 800px;
-    margin: 20px auto;
+    margin-top: 10px !important;
   }
+  
 }
 
-/* Text Input Area */
 .text-input {
   width: 100%;
   height: 181px;
@@ -216,14 +198,12 @@ body, html {
   border: #1a1a2e solid 0.01px;
 }
 
-/* ✨ Focus Effect */
 .text-input:focus {
   border-color: #bad3ed;
   background: #fff;
   box-shadow: 0px 0px 10px rgba(98, 135, 171, 0.3);
 }
 
-/* Button Row inside Text Box */
 .button-row {
   display: flex;
   justify-content: center;
@@ -250,7 +230,6 @@ body, html {
   background-color: #00b34b;
 }
 
-/* Voice Box Mic Container */
 .voice-box .mic-container {
   display: flex;
   flex-direction: column;
@@ -258,9 +237,6 @@ body, html {
   justify-content: center;
 }
 
-
-
-/* Live Captions */
 .live-captions {
   margin-bottom: 50px ;
   padding: 15px 25px;
@@ -273,7 +249,6 @@ body, html {
 
 }
 
-/* Animated Live Captions Text */
 .live-captions-text {
   display: inline-block;
   font-size: 20px;
@@ -282,7 +257,6 @@ body, html {
   margin-bottom: 10px;
 }
 
-/* Old button style (if needed) - can be removed if using specific classes above */
 button {
   margin-top: 10px;
   padding: 10px 15px;
@@ -338,7 +312,6 @@ button:hover {
   border: #1a1a2e solid 0.01px;
 }
 
-/* WaveSurfer Container Inside Circle */
 .waveform {
   position: absolute;
   width: 90%;
@@ -560,9 +533,9 @@ button:hover {
   }
   .exit-btn {
     position: absolute; 
-    right: 33px;
-    width: 40px;
-    height: 40px;
+    right: 10px;
+    width: 35px;
+    height: 35px;
     background: #333;
     border: none;
     border-radius: 50%;
@@ -574,6 +547,8 @@ button:hover {
     align-items: center;
     justify-content: center;
     z-index: 100;
+    margin-right: 2px;
+    margin-top: 100px;
   }
   .repeat-btn{
     max-width: 50%;

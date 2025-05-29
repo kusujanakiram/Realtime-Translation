@@ -625,8 +625,7 @@ const handleDownloadAll = async () => {
 
   return (
     <div className="translation-page">
-      {/* ---------- Header remains unchanged ---------- */}
-      <header className="header">
+      <div className="header">
         <div className="logo">
           <img src="images\AnuvadhamLogo.png" alt="Logo" />
           <span>Anuvadham</span>
@@ -645,9 +644,8 @@ const handleDownloadAll = async () => {
             Terminate
           </motion.button>
         )}
-      </header>
+      </div>
   
-      {/* ---------- New Main Content Container ---------- */}
       <div className="translation-container">
   {/* ========== Box 1: Text Input (Both Users Choose Text) ========== */}
   {settings?.inputMethod1 === "text" && settings?.inputMethod2 === "text" && (
@@ -832,9 +830,6 @@ const handleDownloadAll = async () => {
 </motion.div>
 
       <div className="mobile-bottom-spacer"></div>
-
-  
-      {/* ---------- Modal and Footer remain unchanged ---------- */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">

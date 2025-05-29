@@ -5,6 +5,7 @@ import { FaComments } from "react-icons/fa";
 import axios from 'axios';
 import './ConversationHistory.css';
 import languageMap from '../languageNameMap'; 
+import Header from '../components/Header'; 
 
 const ConversationHistory = () => {
   const [history, setHistory] = useState([]);
@@ -181,7 +182,8 @@ const matchesTargetLang = filterTargetLang
 
   return (
     <div className="conversation-history-page">
-      <div className="history-container">
+      <Header className="header-container"/>
+      <div className="history-container hide-scrollbar ">
         <h2>Conversation History</h2>
 
         <div className="filter-section">

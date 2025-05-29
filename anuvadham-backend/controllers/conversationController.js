@@ -1,7 +1,7 @@
 const Conversation = require('../models/ConversationModel');
 const User = require('../models/UserModel');
 const cloudinary = require('../config/cloudinary');
-// POST: Save a new conversation
+
 const createConversation = async (req, res) => {
   try {
     const {
@@ -12,7 +12,6 @@ const createConversation = async (req, res) => {
       conversationText
     } = req.body;
 
-    // ✅ Cloudinary file URL
     const conversationAudio = req.file?.path || ''; // Cloudinary URL
 
     let parsedPerson1, parsedPerson2;
@@ -29,7 +28,7 @@ const createConversation = async (req, res) => {
       person1: parsedPerson1,
       person2: parsedPerson2,
       conversationText,
-      conversationAudio, // ✅ now stores Cloudinary URL
+      conversationAudio,
       user: req.user._id
     });
 
@@ -46,19 +45,17 @@ const createConversation = async (req, res) => {
 };
 
 
-// GET: All conversations
 const getAllConversations = async (req, res) => {
   try {
     const conversations = await Conversation.find({ user: req.user._id })
-      .sort({ startTime: -1 })  // Make sure `startTime` field exists in your model
-      .populate('user', 'name email'); // Optional: To populate user data
+      .sort({ startTime: -1 })  
+      .populate('user', 'name email'); 
     res.json(conversations);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch conversations', details: err.message });
   }
 };
 
-// GET: Conversation by ID
 const getConversationById = async (req, res) => {
   try {
     const conversation = await Conversation.findById(req.params.id);
@@ -87,18 +84,16 @@ const deleteConversation = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Extract public_id from Cloudinary URL
     const publicId = conversation.conversationAudio?.split('/').pop().split('.')[0];
 
     if (publicId) {
       await cloudinary.uploader.destroy(`anuvadham/${publicId}`, {
-        resource_type: 'video', // because it's audio
+        resource_type: 'video',
       });
     }
 
     await Conversation.findByIdAndDelete(req.params.id);
 
-    // Remove from user's conversation list
     await User.findByIdAndUpdate(req.user._id, {
       $pull: { conversations: req.params.id }
     });
