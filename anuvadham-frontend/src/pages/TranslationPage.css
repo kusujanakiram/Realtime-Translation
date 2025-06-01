@@ -520,7 +520,12 @@ button:hover {
   border-bottom: 2px solid #e0e0e0;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
 }
-
+.translation-container > .box {
+  margin-bottom: 30px;
+}
+.mixed-box{
+  margin-bottom: 30px;
+}
 @media (max-width: 768px) {
   .translation-page {
     overflow-y: auto;
@@ -553,7 +558,9 @@ button:hover {
   .repeat-btn{
     max-width: 50%;
   }
-
+  .translation-container > .box {
+  margin-top: 70px; 
+  margin-bottom: 30px;
 }
 .custom-alert {
     position: fixed;
